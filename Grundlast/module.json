@@ -1,0 +1,16 @@
+{
+    "id": "{301027E9-615F-4CCD-8168-C2158A3DD7CD}",
+    "name": "Grundlast",
+    "type": 3,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "GRL",
+    "url": "https://deinsmarthome.info"
+}

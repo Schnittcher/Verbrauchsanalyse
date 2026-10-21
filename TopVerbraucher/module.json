@@ -1,0 +1,16 @@
+{
+    "id": "{6963DE60-AECF-476A-AB4B-B547FC2539CB}",
+    "name": "TopVerbraucher",
+    "type": 3,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "TVB",
+    "url": "https://deinsmarthome.info"
+}

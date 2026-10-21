@@ -1,0 +1,969 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .vbr {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --good: #2fb344;
+        --bad: #e5484d;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .vbr::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .vbr::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .vbr::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .vbr::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .vbr * {
+        box-sizing: border-box;
+    }
+
+    .vbr > * {
+        flex-shrink: 0;
+    }
+
+    .vbr-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        align-items: center;
+    }
+
+    .vbr-chip,
+    .vbr-btn {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .vbr-chip:hover,
+    .vbr-btn:hover {
+        background: var(--soft);
+    }
+
+    .vbr-chip.active {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .vbr-btn.primary {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    /* Die Berichte der Liste als Reiter, damit sie sich von den Badges für den Zeitraum unterscheiden */
+    .vbr-tabs {
+        display: flex;
+        gap: 1.1em;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .vbr-tab {
+        font: inherit;
+        font-size: 0.95em;
+        color: var(--content-color);
+        opacity: 0.65;
+        background: transparent;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        padding: 0.3em 0.1em;
+        cursor: pointer;
+    }
+
+    .vbr-tab:hover {
+        opacity: 1;
+    }
+
+    .vbr-tab.active {
+        opacity: 1;
+        font-weight: 700;
+        color: var(--accent-color);
+        border-bottom-color: var(--accent-color);
+    }
+
+    .vbr-select {
+        font: inherit;
+        font-size: 0.9em;
+        font-weight: 700;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.4em 0.6em;
+        max-width: 100%;
+    }
+
+    .vbr-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    .vbr-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.6em;
+        flex-wrap: wrap;
+    }
+
+    .vbr-title {
+        font-weight: 600;
+        font-size: 1.1em;
+    }
+
+    .vbr-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .vbr-section {
+        font-size: 0.8em;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.2em;
+    }
+
+    .vbr-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr));
+        gap: 0.5em;
+    }
+
+    .vbr-card {
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.45em 0.7em;
+    }
+
+    .vbr-value {
+        font-size: 1.25em;
+        font-weight: 600;
+    }
+
+    .vbr-value.good {
+        color: var(--good);
+    }
+
+    .vbr-value.bad {
+        color: var(--bad);
+    }
+
+    .vbr-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .vbr-notice {
+        background: color-mix(in srgb, #f59e0b 18%, transparent);
+        border-radius: 0.7em;
+        padding: 0.4em 0.7em;
+        font-size: 0.9em;
+    }
+
+    .vbr-chart {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .vbr-chart text {
+        fill: var(--muted);
+        font-size: 9px;
+    }
+
+    .vbr-stack {
+        display: flex;
+        height: 0.9em;
+        border-radius: 0.5em;
+        overflow: hidden;
+        background: var(--soft);
+    }
+
+    .vbr-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25em;
+        font-size: 0.9em;
+    }
+
+    .vbr-legend > div {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+    }
+
+    .vbr-dot {
+        width: 0.7em;
+        height: 0.7em;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .vbr-grow {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .vbr-num {
+        text-align: right;
+        white-space: nowrap;
+        color: var(--muted);
+    }
+
+    .vbr-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35em;
+        font-size: 0.9em;
+    }
+
+    .vbr-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        column-gap: 0.7em;
+        row-gap: 0.15em;
+        align-items: baseline;
+    }
+
+    .vbr-bar {
+        grid-column: 1 / -1;
+        height: 0.3em;
+        border-radius: 0.2em;
+        background: var(--soft);
+        overflow: hidden;
+    }
+
+    .vbr-bar > span {
+        display: block;
+        height: 100%;
+        background: var(--accent-color);
+    }
+
+    .vbr-item.sub .vbr-name {
+        padding-left: 1em;
+        color: var(--muted);
+    }
+
+    .vbr-item.group .vbr-name {
+        font-weight: 600;
+    }
+
+    .vbr-change.good {
+        color: var(--good);
+    }
+
+    .vbr-change.bad {
+        color: var(--bad);
+    }
+
+    .vbr-message {
+        font-size: 0.85em;
+        color: var(--muted);
+        min-height: 1.2em;
+    }
+
+    .vbr-custom {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6em;
+    }
+
+    .vbr-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+        font-size: 0.9em;
+    }
+
+    .vbr-field select,
+    .vbr-field input {
+        font: inherit;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.35em 0.6em;
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .vbr-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .vbr-tip-title {
+        font-weight: 700;
+    }
+
+    .vbr-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Einträge der Auswahlliste nehmen die Farben der Kachel, damit sie im dunklen Stil dunkel bleiben (Schrift und Hintergrund passen zusammen) */
+    .vbr-field select option,
+    .vbr-select option {
+        background: var(--card-color, #ffffff);
+        color: var(--content-color, #1f2937);
+    }
+
+    .vbr-overlay {
+        position: fixed;
+        top: var(--vbr-top, 0);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 10;
+    }
+
+    .vbr-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6em;
+        width: min(24em, 92%);
+        max-height: 92%;
+        overflow-y: auto;
+        padding: 0.9em 1em;
+        border-radius: 1em;
+        background: var(--card-color, Canvas);
+        color: var(--content-color);
+        scrollbar-width: thin;
+    }
+
+    .vbr-option {
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+        font-size: 0.9em;
+    }
+
+    .vbr-option input[type=checkbox] {
+        accent-color: var(--accent-color);
+        flex-shrink: 0;
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+<div class="vbr" id="vbr"></div>
+<script>
+    (function () {
+        var NS = 'http://www.w3.org/2000/svg';
+        var root = document.getElementById('vbr');
+        var state = null;
+        var selected = null;
+        var customFrom = '';
+        var customTo = '';
+        var busy = false;
+        // Bis zu so vielen Berichten stehen als Reiter, darüber als Auswahlliste
+        var MAX_TABS = 4;
+        var popup = false;
+        var typing = false;
+        // Nur die Kachel, in der der Download angefordert wurde, speichert die Datei. Die Meldung geht an jede offene Ansicht der Instanz.
+        var awaitingDownload = false;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'vbr-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'vbr-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        function hint(node, lines) {
+            node.classList.add('vbr-hint');
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    showTip(lines, event);
+                });
+            });
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten bleibt der Hinweis bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.vbr-hint')) {
+                hideTip();
+            }
+        });
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function svg(tag, attributes) {
+            var node = document.createElementNS(NS, tag);
+            Object.keys(attributes || {}).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function signed(value) {
+            return (value > 0 ? '+' : '') + fmt(value, 0) + ' %';
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+            // Das Fenster der Einstellungen beginnt unter dem oberen Rand, den die Visualisierung für den Titel freihält
+            root.style.setProperty('--vbr-top', style.marginTop);
+        }
+
+        function isoDay(offset) {
+            var base = state && state.today ? new Date(state.today + 'T12:00:00') : new Date();
+            base.setDate(base.getDate() + offset);
+            return base.getFullYear() + '-' + ('0' + (base.getMonth() + 1)).slice(-2) + '-' + ('0' + base.getDate()).slice(-2);
+        }
+
+        function act(ident, value) {
+            if (typeof requestAction !== 'function') {
+                return;
+            }
+            busy = true;
+            render();
+            requestAction(ident, value);
+        }
+
+        function request(ident) {
+            if (selected === 4) {
+                act(ident, JSON.stringify({from: customFrom, to: customTo}));
+            } else {
+                act(ident, selected);
+            }
+        }
+
+        function option(key, value) {
+            if (typeof requestAction === 'function') {
+                requestAction('Option', JSON.stringify({key: key, value: value}));
+            }
+        }
+
+        function button(text, className, handler) {
+            var node = el('button', className, text);
+            node.type = 'button';
+            node.addEventListener('click', handler);
+            return node;
+        }
+
+        function card(label, value, note, tone) {
+            var box = el('div', 'vbr-card');
+            box.appendChild(el('div', 'vbr-label', label));
+            box.appendChild(el('div', 'vbr-value' + (tone ? ' ' + tone : ''), value));
+            if (note) {
+                box.appendChild(el('div', 'vbr-note', note));
+            }
+            return box;
+        }
+
+        function buildPopup(texts, options) {
+            var overlay = el('div', 'vbr-overlay');
+            overlay.addEventListener('click', function (event) {
+                if (event.target === overlay) {
+                    popup = false;
+                    render();
+                }
+            });
+            var panel = el('div', 'vbr-panel');
+            panel.appendChild(el('div', 'vbr-title', texts.content));
+            var heatingMedium = options.HeatingMedium;
+            ['IncludeCost', 'IncludePrevious', 'IncludeLastYear', 'IncludeNotice', 'IncludeIndicators', 'IncludeCo2', 'IncludeNotRecorded'].forEach(function (key) {
+                if (heatingMedium && key === 'IncludeNotRecorded') {
+                    return;
+                }
+                var row = el('label', 'vbr-option');
+                var box = el('input');
+                box.type = 'checkbox';
+                box.checked = !!options[key];
+                box.addEventListener('change', function () {
+                    option(key, box.checked);
+                });
+                row.appendChild(box);
+                row.appendChild(el('span', '', texts[key]));
+                panel.appendChild(row);
+            });
+            var listField = el('label', 'vbr-field');
+            listField.appendChild(el('span', 'vbr-label', texts.ListMode));
+            var select = el('select');
+            [[0, texts.listNone], [1, texts.listTree], [2, texts.listTop]].forEach(function (entry) {
+                var item = el('option', '', entry[1]);
+                item.value = String(entry[0]);
+                item.selected = options.ListMode === entry[0];
+                select.appendChild(item);
+            });
+            select.addEventListener('change', function () {
+                option('ListMode', parseInt(select.value, 10));
+            });
+            listField.appendChild(select);
+            if (!heatingMedium) {
+                panel.appendChild(listField);
+            }
+            if (options.ListMode === 2 && !heatingMedium) {
+                var topField = el('label', 'vbr-field');
+                topField.appendChild(el('span', 'vbr-label', texts.TopN));
+                var number = el('input');
+                number.type = 'number';
+                number.min = '1';
+                number.max = '100';
+                number.value = String(options.TopN);
+                number.addEventListener('focus', function () {
+                    typing = true;
+                });
+                number.addEventListener('change', function () {
+                    typing = false;
+                    option('TopN', parseInt(number.value, 10));
+                });
+                topField.appendChild(number);
+                panel.appendChild(topField);
+            }
+            panel.appendChild(button(texts.close, 'vbr-btn primary', function () {
+                popup = false;
+                render();
+            }));
+            overlay.appendChild(panel);
+            return overlay;
+        }
+
+        // Säulendiagramm mit gestrichelter Durchschnittslinie. Die Teilung kommt vom Modul (Stunden, Tage oder Monate).
+        function buildChart(report) {
+            var series = report.series || [];
+            // Die Zeichnung entsteht in der echten Breite der Kachel, damit Schrift und Säulen nicht verzerrt werden
+            var width = Math.max(200, root.clientWidth - 14);
+            var height = 130;
+            var left = 30;
+            var top = 16;
+            var bottom = 26;
+            var node = svg('svg', {'class': 'vbr-chart', width: width, height: height, viewBox: '0 0 ' + width + ' ' + height});
+            var max = 0;
+            series.forEach(function (item) {
+                max = Math.max(max, item.value);
+            });
+            if (report.average_bucket) {
+                max = Math.max(max, report.average_bucket);
+            }
+            if (max <= 0) {
+                max = 1;
+            }
+            var plot = height - top - bottom;
+            var slot = (width - left) / series.length;
+            [0, 0.5, 1].forEach(function (fraction) {
+                var y = top + plot * (1 - fraction);
+                node.appendChild(svg('line', {x1: left, x2: width, y1: y, y2: y, stroke: 'currentColor', 'stroke-opacity': '0.12', 'stroke-width': '0.6'}));
+                var label = svg('text', {x: left - 3, y: y + 3, 'text-anchor': 'end'});
+                label.textContent = fmt(max * fraction, max < 10 ? 1 : 0);
+                node.appendChild(label);
+            });
+            // Achsentitel: links oben die Einheit, unten die Teilung der Zeitachse
+            var unitLabel = svg('text', {x: 0, y: 8, 'text-anchor': 'start', 'font-weight': '600'});
+            unitLabel.textContent = report.unit;
+            node.appendChild(unitLabel);
+            var axisKey = {hour: 'axisHour', day: 'axisDay', month: 'axisMonth'}[report.bucket] || 'axisDay';
+            var axisLabel = svg('text', {x: left + (width - left) / 2, y: height - 2, 'text-anchor': 'middle', 'font-weight': '600'});
+            axisLabel.textContent = state.texts[axisKey];
+            node.appendChild(axisLabel);
+            var step = Math.ceil(series.length / 10);
+            series.forEach(function (item, index) {
+                var barHeight = plot * item.value / max;
+                var bar = svg('rect', {
+                    x: left + index * slot + slot * 0.16,
+                    y: top + plot - barHeight,
+                    width: slot * 0.68,
+                    height: Math.max(0.5, barHeight),
+                    rx: 1,
+                    fill: 'var(--accent-color)'
+                });
+                hint(bar, [item.title || item.label, fmt(item.value, 2) + ' ' + report.unit]);
+                node.appendChild(bar);
+                if (index % step === 0) {
+                    var text = svg('text', {x: left + index * slot + slot / 2, y: height - 14, 'text-anchor': 'middle'});
+                    text.textContent = item.label;
+                    node.appendChild(text);
+                }
+            });
+            if (report.average_bucket) {
+                var y = top + plot * (1 - report.average_bucket / max);
+                node.appendChild(svg('line', {x1: left, x2: width, y1: y, y2: y, stroke: 'var(--bad)', 'stroke-width': '0.9', 'stroke-dasharray': '3 2'}));
+            }
+            return node;
+        }
+
+        function buildDistribution(report) {
+            var slices = report.slices || [];
+            var sum = 0;
+            slices.forEach(function (slice) {
+                sum += slice[1];
+            });
+            var wrap = el('div', 'vbr-legend');
+            var stack = el('div', 'vbr-stack');
+            slices.forEach(function (slice) {
+                var part = el('span');
+                part.style.width = (slice[1] / sum * 100) + '%';
+                part.style.background = slice[2];
+                hint(part, [slice[0], fmt(slice[1], 2) + ' ' + report.unit, fmt(slice[1] / sum * 100, 0) + ' %']);
+                stack.appendChild(part);
+            });
+            wrap.appendChild(stack);
+            slices.forEach(function (slice) {
+                var row = el('div');
+                hint(row, [slice[0], fmt(slice[1], 2) + ' ' + report.unit, fmt(slice[1] / sum * 100, 0) + ' %']);
+                var dot = el('span', 'vbr-dot');
+                dot.style.background = slice[2];
+                row.appendChild(dot);
+                row.appendChild(el('span', 'vbr-grow', slice[0]));
+                row.appendChild(el('span', 'vbr-num', fmt(slice[1], 2) + ' ' + report.unit + '  ' + fmt(slice[1] / sum * 100, 0) + ' %'));
+                wrap.appendChild(row);
+            });
+            return wrap;
+        }
+
+        function buildRows(report, withCost) {
+            var list = el('div', 'vbr-list');
+            report.rows.forEach(function (row) {
+                var item = el('div', 'vbr-item' + (row.level > 0 ? ' sub' : '') + (row.type === 'group' ? ' group' : ''));
+                var lines = [row.name, fmt(row.value, 2) + ' ' + report.unit + ' (' + fmt(row.share, 0) + ' %)'];
+                if (withCost) {
+                    lines.push(fmt(row.cost, 2) + ' €');
+                }
+                if (row.change !== null) {
+                    lines.push(signed(row.change));
+                }
+                hint(item, lines);
+                item.appendChild(el('span', 'vbr-name vbr-grow', row.name));
+                item.appendChild(el('span', 'vbr-num', fmt(row.value, 2) + ' ' + report.unit + (withCost ? ' · ' + fmt(row.cost, 2) + ' €' : '')));
+                var change = el('span', 'vbr-num vbr-change' + (row.change === null ? '' : (row.change > 0 ? ' bad' : ' good')), row.change === null ? '' : signed(row.change));
+                item.appendChild(change);
+                var bar = el('div', 'vbr-bar');
+                var fill = el('span');
+                fill.style.width = Math.min(100, row.share) + '%';
+                bar.appendChild(fill);
+                item.appendChild(bar);
+                list.appendChild(item);
+            });
+            return list;
+        }
+
+        function renderReport(texts, report, options) {
+            var head = el('div', 'vbr-head');
+            head.appendChild(el('div', 'vbr-title', report.label));
+            var files = el('div', 'vbr-row');
+            [['pdf', report.pdf], ['csv', report.csv]].forEach(function (entry) {
+                if (entry[1] > 0) {
+                    files.appendChild(button(texts[entry[0]], 'vbr-btn', function () {
+                        awaitingDownload = true;
+                        requestAction('Download', entry[0]);
+                    }));
+                }
+            });
+            head.appendChild(files);
+            root.appendChild(head);
+
+            var cards = el('div', 'vbr-cards');
+            cards.appendChild(card(texts.total, fmt(report.total, 2) + ' ' + report.unit));
+            if (options.IncludeCost) {
+                cards.appendChild(card(texts.cost, fmt(report.cost, 2) + ' €'));
+            }
+            if (report.co2 !== null && report.co2 !== undefined) {
+                cards.appendChild(card(texts.co2, fmt(report.co2, 1) + ' kg'));
+            }
+            if (options.IncludePrevious) {
+                if (report.previous !== null) {
+                    cards.appendChild(card(texts.previous, signed(report.changePrevious), fmt(report.previous, 1) + ' ' + report.unit, report.changePrevious > 0 ? 'bad' : 'good'));
+                }
+                if (report.average !== null) {
+                    cards.appendChild(card(texts.average, signed(report.changeAverage), fmt(report.average, 1) + ' ' + report.unit, report.changeAverage > 0 ? 'bad' : 'good'));
+                }
+            }
+            if (options.IncludeLastYear && report.changeLastYear !== null) {
+                cards.appendChild(card(texts.lastYear, signed(report.changeLastYear), fmt(report.lastYear, 1) + ' ' + report.unit, report.changeLastYear > 0 ? 'bad' : 'good'));
+            }
+            if (options.IncludeIndicators) {
+                if (report.perResident !== null) {
+                    cards.appendChild(card(texts.perResident, fmt(report.perResident, 2) + ' ' + report.unit));
+                }
+                if (report.perArea !== null) {
+                    cards.appendChild(card(texts.perArea, fmt(report.perArea, 2) + ' ' + report.unit));
+                }
+            }
+            root.appendChild(cards);
+
+            if (options.IncludeNotice && report.notice) {
+                root.appendChild(el('div', 'vbr-notice', report.notice));
+            }
+            if (report.series && report.series.length > 1) {
+                root.appendChild(el('div', 'vbr-section', texts.course));
+                root.appendChild(buildChart(report));
+            }
+            if (report.slices && report.slices.length > 0) {
+                root.appendChild(el('div', 'vbr-section', texts.distribution));
+                root.appendChild(buildDistribution(report));
+            }
+            if (report.rows && report.rows.length > 0) {
+                root.appendChild(el('div', 'vbr-section', texts.details));
+                root.appendChild(buildRows(report, options.IncludeCost));
+            }
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            if (selected === null) {
+                selected = state.period;
+                customTo = isoDay(-1);
+                customFrom = isoDay(-7);
+            }
+            root.textContent = '';
+
+            // Die Berichte der Liste: ein Klick wählt den Bericht, seine Einstellungen und Dateien gelten dann für die Kachel
+            if (state.reports && state.reports.length > 1) {
+                if (state.reports.length > MAX_TABS) {
+                    // Bei vielen Berichten passen die Reiter nicht mehr, dann wählt eine Liste
+                    var reportSelect = el('select', 'vbr-select');
+                    state.reports.forEach(function (name) {
+                        var item = el('option', '', name);
+                        item.value = name;
+                        item.selected = state.selectedReport === name;
+                        reportSelect.appendChild(item);
+                    });
+                    reportSelect.addEventListener('change', function () {
+                        if (reportSelect.value !== state.selectedReport) {
+                            act('SelectReport', reportSelect.value);
+                        }
+                    });
+                    root.appendChild(reportSelect);
+                } else {
+                    var reportRow = el('div', 'vbr-tabs');
+                    state.reports.forEach(function (name) {
+                        reportRow.appendChild(button(name, 'vbr-tab' + (state.selectedReport === name ? ' active' : ''), function () {
+                            if (state.selectedReport !== name) {
+                                act('SelectReport', name);
+                            }
+                        }));
+                    });
+                    root.appendChild(reportRow);
+                }
+            }
+
+            var chips = el('div', 'vbr-row');
+            [['day', 0], ['week', 1], ['month', 2], ['year', 3], ['custom', 4]].forEach(function (entry) {
+                chips.appendChild(button(texts[entry[0]], 'vbr-chip' + (selected === entry[1] ? ' active' : ''), function () {
+                    selected = entry[1];
+                    render();
+                }));
+            });
+            root.appendChild(chips);
+
+            if (selected === 4) {
+                var custom = el('div', 'vbr-custom');
+                [['from', customFrom], ['to', customTo]].forEach(function (entry) {
+                    var field = el('label', 'vbr-field');
+                    field.appendChild(el('span', 'vbr-label', texts[entry[0]]));
+                    var input = el('input');
+                    input.type = 'date';
+                    input.max = state.today;
+                    input.value = entry[1];
+                    input.addEventListener('change', function () {
+                        if (entry[0] === 'from') {
+                            customFrom = input.value;
+                        } else {
+                            customTo = input.value;
+                        }
+                    });
+                    field.appendChild(input);
+                    custom.appendChild(field);
+                });
+                root.appendChild(custom);
+            }
+
+            var actions = el('div', 'vbr-row');
+            var create = button(texts.create, 'vbr-btn primary', function () {
+                request('Create');
+            });
+            create.disabled = busy;
+            actions.appendChild(create);
+            if (state.canMail) {
+                var mail = button(texts.mail, 'vbr-btn', function () {
+                    request('Mail');
+                });
+                mail.disabled = busy;
+                actions.appendChild(mail);
+            }
+            actions.appendChild(button(texts.content, 'vbr-btn', function () {
+                popup = true;
+                render();
+            }));
+            root.appendChild(actions);
+            root.appendChild(el('div', 'vbr-message', busy ? texts.busy : state.message));
+
+            if (popup) {
+                root.appendChild(buildPopup(texts, state.options));
+            }
+            if (!state.report) {
+                root.appendChild(el('div', 'vbr-label', texts.empty));
+            } else {
+                renderReport(texts, state.report, state.options);
+            }
+            drawnWidth = root.clientWidth;
+            fit();
+        }
+
+        function saveFile(file) {
+            try {
+                var bytes = atob(file.data);
+                var buffer = new Uint8Array(bytes.length);
+                for (var i = 0; i < bytes.length; i++) {
+                    buffer[i] = bytes.charCodeAt(i);
+                }
+                var url = URL.createObjectURL(new Blob([buffer], {type: file.mime}));
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(function () {
+                    URL.revokeObjectURL(url);
+                }, 10000);
+            } catch (e) {
+            }
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            var parsed;
+            try {
+                parsed = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            // Eine Berichtsdatei vom Modul wird direkt als Download gespeichert
+            if (parsed.download) {
+                if (awaitingDownload) {
+                    awaitingDownload = false;
+                    saveFile(parsed.download);
+                }
+                return;
+            }
+            // Ein anderer Bericht beginnt mit seinem eigenen Zeitraum
+            if (!state || state.selectedReport !== parsed.selectedReport) {
+                selected = null;
+            }
+            state = parsed;
+            busy = false;
+            if (typing) {
+                return;
+            }
+            render();
+        };
+
+        // Bei geänderter Breite wird das Diagramm neu gezeichnet
+        var drawnWidth = 0;
+        window.addEventListener('resize', function () {
+            fit();
+            if (state && Math.abs(root.clientWidth - drawnWidth) > 8) {
+                render();
+            }
+        });
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

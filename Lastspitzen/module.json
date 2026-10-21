@@ -1,0 +1,18 @@
+{
+    "id": "{A4238908-5E8E-4940-9656-44EF3091CB94}",
+    "name": "Lastspitzen",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Spitzenlast"
+    ],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "LSP",
+    "url": "https://deinsmarthome.info"
+}

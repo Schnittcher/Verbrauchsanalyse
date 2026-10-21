@@ -1,0 +1,18 @@
+{
+    "id": "{DB47E646-950F-42E4-9ED7-2B1BFA07F7BB}",
+    "name": "Austauschrechner",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Gerätetausch"
+    ],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "AUS",
+    "url": "https://deinsmarthome.info"
+}

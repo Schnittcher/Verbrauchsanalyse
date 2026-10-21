@@ -1,0 +1,544 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .co2 {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --good: #2fb344;
+        --bad: #e5484d;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .co2::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .co2::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .co2::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .co2::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .co2 * {
+        box-sizing: border-box;
+    }
+
+    .co2 > * {
+        flex-shrink: 0;
+    }
+
+    .co2-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        align-items: flex-end;
+    }
+
+    .co2-chip,
+    .co2-btn {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .co2-chip:hover,
+    .co2-btn:hover {
+        background: var(--soft);
+    }
+
+    .co2-chip.co2-on,
+    .co2-btn.co2-primary {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .co2-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+        font-size: 0.85em;
+    }
+
+    .co2-field input {
+        font: inherit;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.3em 0.6em;
+    }
+
+    .co2-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .co2-section {
+        font-size: 0.8em;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.2em;
+    }
+
+    .co2-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr));
+        gap: 0.5em;
+    }
+
+    .co2-card {
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.45em 0.7em;
+        min-width: 0;
+    }
+
+    .co2-value {
+        font-size: 1.25em;
+        font-weight: 700;
+    }
+
+    .co2-value.co2-good {
+        color: var(--good);
+    }
+
+    .co2-value.co2-bad {
+        color: var(--bad);
+    }
+
+    .co2-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .co2-stack {
+        display: flex;
+        height: 0.9em;
+        border-radius: 0.5em;
+        overflow: hidden;
+        background: var(--soft);
+    }
+
+    .co2-stack > span {
+        height: 100%;
+    }
+
+    .co2-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25em;
+        font-size: 0.9em;
+    }
+
+    .co2-legend > div {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+    }
+
+    .co2-dot {
+        width: 0.7em;
+        height: 0.7em;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .co2-grow {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .co2-num {
+        text-align: right;
+        white-space: nowrap;
+        color: var(--muted);
+    }
+
+    .co2-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35em;
+        font-size: 0.9em;
+    }
+
+    .co2-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 0.7em;
+        row-gap: 0.15em;
+        align-items: baseline;
+    }
+
+    .co2-item.co2-sub .co2-name {
+        padding-left: 1em;
+        color: var(--muted);
+    }
+
+    .co2-item.co2-group .co2-name {
+        font-weight: 600;
+    }
+
+    .co2-bar {
+        grid-column: 1 / -1;
+        height: 0.3em;
+        border-radius: 0.2em;
+        background: var(--soft);
+        overflow: hidden;
+    }
+
+    .co2-bar > span {
+        display: block;
+        height: 100%;
+        background: var(--accent-color);
+    }
+
+    .co2-message,
+    .co2-empty {
+        font-size: 0.85em;
+        color: var(--muted);
+    }
+
+    .co2-empty {
+        padding: 2em 1em;
+        text-align: center;
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .co2-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .co2-tip-title {
+        font-weight: 700;
+    }
+
+    .co2-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="co2" id="co2"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('co2');
+        var state = null;
+        var selected = null;
+        var customFrom = '';
+        var customTo = '';
+        var busy = false;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        // Ab einer Tonne in t, sonst in kg
+        function mass(kg) {
+            return Math.abs(kg) >= 1000 ? fmt(kg / 1000, 2) + ' t' : fmt(kg, kg < 100 ? 1 : 0) + ' kg';
+        }
+
+        function signed(value) {
+            return (value > 0 ? '+' : '') + fmt(value, 0) + ' %';
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'co2-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'co2-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        function hint(node, lines) {
+            node.classList.add('co2-hint');
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    showTip(lines, event);
+                });
+            });
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten bleibt der Hinweis bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.co2-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function isoDay(offset) {
+            var base = state && state.today ? new Date(state.today + 'T12:00:00') : new Date();
+            base.setDate(base.getDate() + offset);
+            return base.getFullYear() + '-' + ('0' + (base.getMonth() + 1)).slice(-2) + '-' + ('0' + base.getDate()).slice(-2);
+        }
+
+        function load(value) {
+            if (typeof requestAction !== 'function') {
+                return;
+            }
+            busy = true;
+            render();
+            requestAction('Load', value);
+        }
+
+        function button(text, className, handler) {
+            var node = el('button', className, text);
+            node.type = 'button';
+            node.addEventListener('click', handler);
+            return node;
+        }
+
+        function card(label, value, note, tone) {
+            var box = el('div', 'co2-card');
+            box.appendChild(el('div', 'co2-label', label));
+            box.appendChild(el('div', 'co2-value' + (tone ? ' ' + tone : ''), value));
+            if (note) {
+                box.appendChild(el('div', 'co2-note', note));
+            }
+            return box;
+        }
+
+        function buildDistribution(data, texts) {
+            var top = data.rows.filter(function (row) {
+                return row.level === 0 && row.value > 0;
+            });
+            var sum = 0;
+            top.forEach(function (row) {
+                sum += row.value;
+            });
+            var wrap = el('div', 'co2-legend');
+            var stack = el('div', 'co2-stack');
+            top.forEach(function (row) {
+                var part = el('span');
+                part.style.width = (row.value / sum * 100) + '%';
+                part.style.background = row.color || 'var(--accent-color)';
+                hint(part, [row.name, mass(row.value), fmt(row.share, 0) + ' % ' + texts.of]);
+                stack.appendChild(part);
+            });
+            wrap.appendChild(stack);
+            top.forEach(function (row) {
+                var line = el('div');
+                hint(line, [row.name, mass(row.value), fmt(row.share, 0) + ' % ' + texts.of]);
+                var dot = el('span', 'co2-dot');
+                dot.style.background = row.color || 'var(--accent-color)';
+                line.appendChild(dot);
+                line.appendChild(el('span', 'co2-grow', row.name));
+                line.appendChild(el('span', 'co2-num', mass(row.value) + '  ' + fmt(row.share, 0) + ' %'));
+                wrap.appendChild(line);
+            });
+            return wrap;
+        }
+
+        function buildRows(data, texts) {
+            var list = el('div', 'co2-list');
+            data.rows.forEach(function (row) {
+                var item = el('div', 'co2-item' + (row.level > 0 ? ' co2-sub' : '') + (row.type === 'group' ? ' co2-group' : ''));
+                item.appendChild(el('span', 'co2-name co2-grow', row.name));
+                item.appendChild(el('span', 'co2-num', mass(row.value)));
+                var bar = el('div', 'co2-bar');
+                var fill = el('span');
+                fill.style.width = Math.min(100, row.share) + '%';
+                bar.appendChild(fill);
+                item.appendChild(bar);
+                hint(item, [row.name, mass(row.value), fmt(row.share, 1) + ' % ' + texts.of]);
+                list.appendChild(item);
+            });
+            return list;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            var data = state.data;
+            if (selected === null) {
+                selected = state.period;
+                customTo = isoDay(0);
+                customFrom = isoDay(-6);
+            }
+            root.textContent = '';
+
+            var chips = el('div', 'co2-row');
+            [['today', 0], ['week', 1], ['month', 2], ['year', 3], ['custom', 4]].forEach(function (entry) {
+                chips.appendChild(button(texts[entry[0]], 'co2-chip' + (selected === entry[1] ? ' co2-on' : ''), function () {
+                    selected = entry[1];
+                    if (entry[1] !== 4) {
+                        load(entry[1]);
+                    } else {
+                        render();
+                    }
+                }));
+            });
+            root.appendChild(chips);
+
+            if (selected === 4) {
+                var custom = el('div', 'co2-row');
+                [['from', customFrom], ['to', customTo]].forEach(function (entry) {
+                    var field = el('label', 'co2-field');
+                    field.appendChild(el('span', 'co2-label', texts[entry[0]]));
+                    var input = el('input');
+                    input.type = 'date';
+                    input.max = state.today;
+                    input.value = entry[1];
+                    input.addEventListener('change', function () {
+                        if (entry[0] === 'from') {
+                            customFrom = input.value;
+                        } else {
+                            customTo = input.value;
+                        }
+                    });
+                    field.appendChild(input);
+                    custom.appendChild(field);
+                });
+                custom.appendChild(button(texts.show, 'co2-btn co2-primary', function () {
+                    load(JSON.stringify({from: customFrom, to: customTo}));
+                }));
+                root.appendChild(custom);
+            }
+            root.appendChild(el('div', 'co2-message', busy ? '…' : state.message));
+
+            if (data && data.error) {
+                root.appendChild(el('div', 'co2-empty', texts.errors[data.error] || texts.empty));
+                fit();
+                return;
+            }
+            if (!data || !data.rows) {
+                root.appendChild(el('div', 'co2-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var cards = el('div', 'co2-cards');
+            cards.appendChild(card(texts.total, mass(data.total), data.label));
+            if (data.change !== null) {
+                cards.appendChild(card(texts.previous, signed(data.change), mass(data.previous), data.change > 0 ? 'co2-bad' : 'co2-good'));
+            }
+            if (data.perResident !== null) {
+                cards.appendChild(card(texts.perResident, mass(data.perResident)));
+            }
+            cards.appendChild(card(texts.trees, fmt(data.trees, data.trees < 10 ? 1 : 0)));
+            if (data.avgFactor !== null) {
+                cards.appendChild(card(texts.factor, fmt(data.avgFactor, 0) + ' g/' + data.consUnit, data.variable ? texts.variableNote : fmt(data.consumption, 1) + ' ' + data.consUnit));
+            }
+            root.appendChild(cards);
+
+            if (data.rows.length > 0) {
+                root.appendChild(el('div', 'co2-section', texts.distribution));
+                root.appendChild(buildDistribution(data, texts));
+                root.appendChild(buildRows(data, texts));
+            }
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            busy = false;
+            render();
+        };
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

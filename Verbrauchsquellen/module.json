@@ -1,0 +1,16 @@
+{
+    "id": "{F2C73767-01DB-45FA-ACBB-4F4DD79C83CC}",
+    "name": "Verbrauchsquellen",
+    "type": 2,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [],
+    "childRequirements": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "implemented": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "prefix": "VBQ",
+    "url": "https://deinsmarthome.info"
+}

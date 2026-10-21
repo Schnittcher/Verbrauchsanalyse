@@ -1,0 +1,567 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .lsp {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --bad: #e5484d;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .lsp::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .lsp::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .lsp::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .lsp::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .lsp * {
+        box-sizing: border-box;
+    }
+
+    .lsp > * {
+        flex-shrink: 0;
+    }
+
+    .lsp-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        align-items: flex-end;
+    }
+
+    .lsp-chip,
+    .lsp-btn {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .lsp-chip:hover,
+    .lsp-btn:hover {
+        background: var(--soft);
+    }
+
+    .lsp-chip.lsp-on,
+    .lsp-btn.lsp-primary {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .lsp-select,
+    .lsp-field input {
+        font: inherit;
+        font-size: 0.85em;
+        max-width: 100%;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.3em 0.6em;
+    }
+
+    /* Die Einträge der Auswahlliste nehmen die Farben der Kachel, damit sie im dunklen Stil dunkel bleiben (Schrift und Hintergrund passen zusammen) */
+    .lsp-select option {
+        background: var(--card-color, #ffffff);
+        color: var(--content-color, #1f2937);
+    }
+
+    .lsp-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+    }
+
+    .lsp-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .lsp-section {
+        font-size: 0.8em;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.2em;
+    }
+
+    .lsp-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr));
+        gap: 0.5em;
+    }
+
+    .lsp-card {
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.45em 0.7em;
+        min-width: 0;
+    }
+
+    .lsp-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .lsp-value.lsp-alarm {
+        color: var(--bad);
+    }
+
+    .lsp-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .lsp-chart {
+        position: relative;
+        min-height: 9em;
+    }
+
+    .lsp-chart svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .lsp-chart text {
+        font-family: inherit;
+        fill: var(--muted);
+        font-size: 9px;
+    }
+
+    .lsp-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35em;
+        font-size: 0.9em;
+    }
+
+    .lsp-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 0.7em;
+        row-gap: 0.15em;
+        align-items: baseline;
+    }
+
+    .lsp-num {
+        text-align: right;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .lsp-bar {
+        grid-column: 1 / -1;
+        height: 0.3em;
+        border-radius: 0.2em;
+        background: var(--soft);
+        overflow: hidden;
+    }
+
+    .lsp-bar > span {
+        display: block;
+        height: 100%;
+        background: var(--accent-color);
+    }
+
+    .lsp-message,
+    .lsp-empty {
+        font-size: 0.85em;
+        color: var(--muted);
+    }
+
+    .lsp-empty {
+        padding: 2em 1em;
+        text-align: center;
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .lsp-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .lsp-tip-title {
+        font-weight: 700;
+    }
+
+    .lsp-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="lsp" id="lsp"></div>
+
+<script>
+    (function () {
+        var NS = 'http://www.w3.org/2000/svg';
+        var root = document.getElementById('lsp');
+        var state = null;
+        var scope = null;
+        var days = null;
+        var customFrom = '';
+        var customTo = '';
+        var busy = false;
+        var drawnWidth = 0;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function svg(tag, attributes) {
+            var node = document.createElementNS(NS, tag);
+            Object.keys(attributes || {}).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'lsp-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'lsp-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        function hint(node, lines) {
+            node.classList.add('lsp-hint');
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    showTip(lines, event);
+                });
+            });
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten bleibt der Hinweis bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.lsp-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function isoDay(offset) {
+            var base = state && state.today ? new Date(state.today + 'T12:00:00') : new Date();
+            base.setDate(base.getDate() + offset);
+            return base.getFullYear() + '-' + ('0' + (base.getMonth() + 1)).slice(-2) + '-' + ('0' + base.getDate()).slice(-2);
+        }
+
+        function load(request) {
+            if (typeof requestAction !== 'function') {
+                return;
+            }
+            busy = true;
+            render();
+            requestAction('Load', JSON.stringify(request));
+        }
+
+        function stamp(time) {
+            var date = new Date(time * 1000);
+            return date.toLocaleDateString(undefined, {weekday: 'short', day: 'numeric', month: 'numeric'}) + ' ' +
+                ('0' + date.getHours()).slice(-2) + ':00';
+        }
+
+        function button(text, className, handler) {
+            var node = el('button', className, text);
+            node.type = 'button';
+            node.addEventListener('click', handler);
+            return node;
+        }
+
+        function card(label, value, note, alarm) {
+            var box = el('div', 'lsp-card');
+            box.appendChild(el('div', 'lsp-label', label));
+            box.appendChild(el('div', 'lsp-value' + (alarm ? ' lsp-alarm' : ''), value));
+            if (note) {
+                box.appendChild(el('div', 'lsp-note', note));
+            }
+            return box;
+        }
+
+        // Säulen je Tag mit der Spitze des Tages, gestrichelt der Grenzwert
+        function buildChart(data, container, texts) {
+            var peaks = data.dayPeaks;
+            var width = Math.max(240, container.clientWidth);
+            var height = 150;
+            var left = 36;
+            var top = 14;
+            var bottom = 16;
+            var max = data.threshold > 0 ? data.threshold : 0;
+            peaks.forEach(function (peak) {
+                max = Math.max(max, peak.value);
+            });
+            max = max > 0 ? max * 1.08 : 1;
+            var plot = height - top - bottom;
+            var slot = (width - left) / peaks.length;
+            var canvas = svg('svg', {width: width, height: height, viewBox: '0 0 ' + width + ' ' + height});
+
+            var unit = svg('text', {x: 0, y: 8, 'font-weight': '600'});
+            unit.textContent = 'W';
+            canvas.appendChild(unit);
+            [0, 0.5, 1].forEach(function (fraction) {
+                var y = top + plot * (1 - fraction);
+                canvas.appendChild(svg('line', {x1: left, x2: width, y1: y, y2: y, stroke: 'currentColor', 'stroke-opacity': '0.12', 'stroke-width': '0.6'}));
+                var label = svg('text', {x: left - 3, y: y + 3, 'text-anchor': 'end'});
+                label.textContent = fmt(max * fraction, 0);
+                canvas.appendChild(label);
+            });
+
+            var step = Math.ceil(peaks.length / 8);
+            peaks.forEach(function (peak, index) {
+                var barHeight = plot * peak.value / max;
+                var over = data.threshold > 0 && peak.value > data.threshold;
+                var bar = svg('rect', {
+                    x: left + index * slot + slot * 0.14,
+                    y: top + plot - barHeight,
+                    width: Math.max(1, slot * 0.72),
+                    height: Math.max(0.5, barHeight),
+                    rx: 1
+                });
+                bar.style.fill = over ? 'var(--bad)' : 'var(--accent-color)';
+                hint(bar, [stamp(peak.time), fmt(peak.value, 0) + ' W'].concat(over ? [texts.limit + ': ' + fmt(data.threshold, 0) + ' W'] : []));
+                canvas.appendChild(bar);
+                if (index % step === 0) {
+                    var date = new Date(peak.time * 1000);
+                    var text = svg('text', {x: left + index * slot + slot / 2, y: height - 3, 'text-anchor': 'middle'});
+                    text.textContent = date.getDate() + '.' + (date.getMonth() + 1) + '.';
+                    canvas.appendChild(text);
+                }
+            });
+            if (data.threshold > 0) {
+                var y = top + plot * (1 - data.threshold / max);
+                canvas.appendChild(svg('line', {x1: left, x2: width, y1: y, y2: y, stroke: 'var(--bad)', 'stroke-width': '1', 'stroke-dasharray': '4 3'}));
+            }
+            return canvas;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            var data = state.data;
+            if (scope === null) {
+                scope = state.scope;
+                days = state.days;
+                customTo = isoDay(0);
+                customFrom = isoDay(-13);
+            }
+            root.textContent = '';
+
+            var controls = el('div', 'lsp-row');
+            if (data && data.scopes) {
+                var select = el('select', 'lsp-select');
+                select.title = texts.source;
+                data.scopes.forEach(function (entry) {
+                    var option = el('option', '', new Array(entry.level + 1).join(' ') + entry.name);
+                    option.value = entry.id;
+                    option.selected = entry.id === scope;
+                    select.appendChild(option);
+                });
+                select.addEventListener('change', function () {
+                    scope = select.value;
+                    load(days === 0 ? {scope: scope, from: customFrom, to: customTo} : {scope: scope, days: days});
+                });
+                controls.appendChild(select);
+            }
+            state.dayOptions.forEach(function (value) {
+                controls.appendChild(button(value + ' ' + texts.days, 'lsp-chip' + (value === days ? ' lsp-on' : ''), function () {
+                    days = value;
+                    load({scope: scope, days: value});
+                }));
+            });
+            controls.appendChild(button(texts.custom, 'lsp-chip' + (days === 0 ? ' lsp-on' : ''), function () {
+                days = 0;
+                render();
+            }));
+            root.appendChild(controls);
+
+            if (days === 0) {
+                var custom = el('div', 'lsp-row');
+                [['from', customFrom], ['to', customTo]].forEach(function (entry) {
+                    var field = el('label', 'lsp-field');
+                    field.appendChild(el('span', 'lsp-label', texts[entry[0]]));
+                    var input = el('input');
+                    input.type = 'date';
+                    input.max = state.today;
+                    input.value = entry[1];
+                    input.addEventListener('change', function () {
+                        if (entry[0] === 'from') {
+                            customFrom = input.value;
+                        } else {
+                            customTo = input.value;
+                        }
+                    });
+                    field.appendChild(input);
+                    custom.appendChild(field);
+                });
+                custom.appendChild(button(texts.show, 'lsp-btn lsp-primary', function () {
+                    load({scope: scope, from: customFrom, to: customTo});
+                }));
+                root.appendChild(custom);
+            }
+            root.appendChild(el('div', 'lsp-message', busy ? '…' : state.message));
+
+            if (!data || data.sources === 0 || !data.peak) {
+                root.appendChild(el('div', 'lsp-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var cards = el('div', 'lsp-cards');
+            cards.appendChild(card(texts.peak, fmt(data.peak.value, 0) + ' W', stamp(data.peak.time), data.threshold > 0 && data.peak.value > data.threshold));
+            cards.appendChild(card(texts.average, fmt(data.average, 0) + ' W'));
+            if (data.threshold > 0) {
+                cards.appendChild(card(texts.over, String(data.overHours), texts.limit + ' ' + fmt(data.threshold, 0) + ' W', data.overHours > 0));
+            }
+            root.appendChild(cards);
+
+            root.appendChild(el('div', 'lsp-section', texts.peaks + ' · ' + data.label));
+            var container = el('div', 'lsp-chart');
+            root.appendChild(container);
+            fit();
+            container.appendChild(buildChart(data, container, texts));
+            drawnWidth = container.clientWidth;
+            root.appendChild(el('div', 'lsp-note', texts.hourNote));
+
+            root.appendChild(el('div', 'lsp-section', texts.top));
+            var list = el('div', 'lsp-list');
+            var top = data.top[0].value > 0 ? data.top[0].value : 1;
+            data.top.forEach(function (entry) {
+                var item = el('div', 'lsp-item');
+                item.appendChild(el('span', '', stamp(entry.time)));
+                item.appendChild(el('span', 'lsp-num', fmt(entry.value, 0) + ' W'));
+                var bar = el('div', 'lsp-bar');
+                var fill = el('span');
+                fill.style.width = Math.min(100, entry.value / top * 100) + '%';
+                bar.appendChild(fill);
+                item.appendChild(bar);
+                hint(item, [stamp(entry.time), fmt(entry.value, 0) + ' W']);
+                list.appendChild(item);
+            });
+            root.appendChild(list);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            busy = false;
+            render();
+        };
+
+        var resizeTimer = null;
+        function onResize() {
+            fit();
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                var chart = root.querySelector('.lsp-chart');
+                if (state && chart && Math.abs(chart.clientWidth - drawnWidth) > 8) {
+                    render();
+                }
+            }, 150);
+        }
+
+        window.addEventListener('resize', onResize);
+        window.addEventListener('load', onResize);
+        if (window.MutationObserver) {
+            new MutationObserver(onResize).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(onResize, 200);
+        fit();
+    })();
+</script>

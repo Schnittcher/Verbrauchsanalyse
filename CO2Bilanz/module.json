@@ -1,0 +1,18 @@
+{
+    "id": "{2A13F6E4-6C22-4909-8D2E-86B4CAB6AD69}",
+    "name": "CO2Bilanz",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "CO2 Bilanz"
+    ],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "CO2",
+    "url": "https://deinsmarthome.info"
+}

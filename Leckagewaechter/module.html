@@ -1,0 +1,433 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .lkw {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --ok: #2fb344;
+        --alarm: #e5484d;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent
+           in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .lkw::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .lkw::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .lkw::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .lkw::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .lkw * {
+        box-sizing: border-box;
+    }
+
+    .lkw > *:not(.lkw-chart) {
+        flex-shrink: 0;
+    }
+
+    .lkw-hero {
+        display: flex;
+        align-items: center;
+        gap: 0.8em;
+    }
+
+    .lkw-icon {
+        flex: none;
+        width: 3em;
+        height: 3em;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        background: var(--ok);
+    }
+
+    .lkw-leak .lkw-icon {
+        background: var(--alarm);
+    }
+
+    .lkw-icon svg {
+        width: 1.8em;
+        height: 1.8em;
+    }
+
+    .lkw-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    .lkw-leak .lkw-title {
+        color: var(--alarm);
+    }
+
+    .lkw-text {
+        min-width: 0;
+    }
+
+    .lkw-sub {
+        font-size: 0.8em;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+    }
+
+    /* Balken je Stunde, Stunden des Dauerflusses sind hervorgehoben, die gestrichelte Linie ist die Schwelle */
+    .lkw-chart {
+        flex: 1;
+        min-height: 3em;
+        padding: 0.4em 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    /* Die Kachel zeigt so viel, wie in die Höhe passt. Die Stufe misst fit(): 2 alles mit Karten, 1 Diagramm füllt den Rest, 0 nur der Zustand */
+    .lkw[data-level="2"] .lkw-chart {
+        flex: none;
+        height: 8em;
+    }
+
+    .lkw[data-level="0"] .lkw-chart,
+    .lkw[data-level="0"] .lkw-axis {
+        display: none;
+    }
+
+    .lkw-bars {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        gap: 1px;
+    }
+
+    .lkw-bar {
+        flex: 1;
+        min-width: 1px;
+        min-height: 1px;
+        background: color-mix(in srgb, var(--accent-color) 45%, transparent);
+    }
+
+    .lkw-bar.lkw-run {
+        background: var(--ok);
+    }
+
+    .lkw-leak .lkw-bar.lkw-run {
+        background: var(--alarm);
+    }
+
+    .lkw-threshold {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 2px dashed var(--content-color);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .lkw-axis {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5em;
+        font-size: 0.7em;
+        color: var(--muted);
+    }
+
+    /* Karten brechen bei wenig Breite in weitere Zeilen um, damit nichts abgeschnitten wird */
+    .lkw-stats {
+        display: none;
+        grid-template-columns: repeat(auto-fit, minmax(8.5em, 1fr));
+        gap: 0.6em;
+    }
+
+    .lkw[data-level="2"] .lkw-stats {
+        display: grid;
+    }
+
+    .lkw-card {
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.6em 0.8em;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .lkw-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .lkw-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .lkw-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .lkw-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .lkw-tip-title {
+        font-weight: 700;
+    }
+
+    .lkw-hint {
+        cursor: default;
+    }
+
+    .lkw-action {
+        cursor: pointer;
+    }
+
+    .lkw-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="lkw" id="lkw"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('lkw');
+        var state = null;
+
+        var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+        var DROP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.500 6 11a6 6 0 0 1-12 0c0-4.500 6-11 6-11z"/></svg>';
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'lkw-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'lkw-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('lkw-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('lkw-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.lkw-hint')) {
+                hideTip();
+            }
+        });
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return value.toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        // Stunde mit Wochentag, zum Beispiel "Mi., 14:00\u201315:00"
+        function hourLabel(timestamp) {
+            var from = new Date(timestamp * 1000);
+            var to = new Date(timestamp * 1000 + 3600000);
+            var pad = function (date) { return ('0' + date.getHours()).slice(-2) + ':00'; };
+            return from.toLocaleDateString(undefined, {weekday: 'short'}) + ' ' + pad(from) + '\u2013' + pad(to);
+        }
+
+        function clock(timestamp) {
+            var date = new Date(timestamp * 1000);
+            return ('0' + date.getHours()).slice(-2) + ':00';
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+            for (var level = 2; level >= 0; level--) {
+                root.setAttribute('data-level', String(level));
+                if (root.scrollHeight <= root.clientHeight + 1) {
+                    break;
+                }
+            }
+        }
+
+        function card(label, value) {
+            var box = el('div', 'lkw-card');
+            box.appendChild(el('div', 'lkw-label', label));
+            box.appendChild(el('div', 'lkw-value', value));
+            return box;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            root.textContent = '';
+
+            if (!state.hours || state.hours.length === 0) {
+                root.appendChild(el('div', 'lkw-empty', texts.empty));
+                fit();
+                return;
+            }
+            root.classList.toggle('lkw-leak', state.leak === true);
+
+            var hero = el('div', 'lkw-hero');
+            var icon = el('div', 'lkw-icon');
+            icon.innerHTML = state.leak ? DROP : CHECK;
+            hero.appendChild(icon);
+            var text = el('div', 'lkw-text');
+            text.appendChild(el('div', 'lkw-title', state.leak ? texts.leak : texts.ok));
+            text.appendChild(el('div', 'lkw-sub', state.message));
+            hero.appendChild(text);
+            root.appendChild(hero);
+
+            // Die letzten "run" Stunden sind der Dauerfluss
+            var chart = el('div', 'lkw-chart');
+            var bars = el('div', 'lkw-bars');
+            var max = Math.max.apply(null, state.hours.map(function (h) { return h.l; }).concat([state.threshold, 1]));
+            state.hours.forEach(function (hour, index) {
+                var bar = el('div', 'lkw-bar' + (index >= state.hours.length - state.run ? ' lkw-run' : ''));
+                bar.style.height = (hour.l / max * 100) + '%';
+                hint(bar, function () {
+                    var status = index >= state.hours.length - state.run ? texts.hintRun : (hour.l >= state.threshold ? texts.hintAbove : texts.hintBelow);
+                    var lines = [hourLabel(hour.t), fmt(hour.l, 1) + ' l/h', status];
+                    return (state.clickOpen && state.sourceId && typeof openObject === 'function') ? lines.concat([texts.openHint]) : lines;
+                }, (state.clickOpen && state.sourceId && typeof openObject === 'function') ? function () { openObject(state.sourceId); } : null);
+                bars.appendChild(bar);
+            });
+            var line = el('div', 'lkw-threshold');
+            line.style.bottom = (state.threshold / max * 100) + '%';
+            bars.appendChild(line);
+            chart.appendChild(bars);
+            root.appendChild(chart);
+
+            var axis = el('div', 'lkw-axis');
+            axis.appendChild(el('span', '', clock(state.hours[0].t)));
+            axis.appendChild(el('span', '', texts.chart));
+            axis.appendChild(el('span', '', clock(state.hours[state.hours.length - 1].t)));
+            root.appendChild(axis);
+
+            var stats = el('div', 'lkw-stats');
+            stats.appendChild(card(texts.run, state.run + ' h'));
+            stats.appendChild(card(texts.minFlow, fmt(state.minFlow, 1) + ' l/h'));
+            stats.appendChild(card(texts.lossYear, fmt(state.lossYear, 1) + ' m³'));
+            stats.appendChild(card(texts.lossCost, fmt(state.lossCost, 2) + ' €'));
+            root.appendChild(stats);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        // Die Visualisierung setzt die Ränder am body eventuell erst nach dem Laden. Deshalb wird die Höhe nach dem Laden
+        // und bei jeder Änderung von Rand oder Fenster neu berechnet, sonst ist die Kachel zu hoch und die Seite scrollt.
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

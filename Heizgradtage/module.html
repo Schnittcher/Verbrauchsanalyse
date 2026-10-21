@@ -1,0 +1,480 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .hgt {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --up: #e5484d;
+        --down: #2fb344;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent
+           in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .hgt::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .hgt::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .hgt::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .hgt::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .hgt * {
+        box-sizing: border-box;
+    }
+
+    .hgt > * {
+        flex-shrink: 0;
+    }
+
+    .hgt-hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.8em;
+        flex-wrap: wrap;
+    }
+
+    .hgt-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .hgt-number {
+        font-size: 2.6em;
+        font-weight: 700;
+        line-height: 1.1;
+        overflow-wrap: anywhere;
+    }
+
+    .hgt-number small {
+        font-size: 0.4em;
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 0.3em;
+    }
+
+    .hgt-change {
+        text-align: right;
+        font-size: 0.85em;
+    }
+
+    .hgt-change .hgt-up {
+        color: var(--up);
+        font-weight: 700;
+    }
+
+    .hgt-change .hgt-down {
+        color: var(--down);
+        font-weight: 700;
+    }
+
+    /* Zwei Balken je Zeitraum: dieses Jahr gegen Vorjahr, jeweils je Heizgradtag */
+    /* Übriger Platz verteilt sich auf die Abschnitte, damit unten keine Lücke bleibt */
+    .hgt-section {
+        flex: 1 1 auto;
+        justify-content: space-between;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4em;
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.7em 0.9em;
+    }
+
+    .hgt-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5em;
+        font-weight: 700;
+    }
+
+    .hgt-title .hgt-up {
+        color: var(--up);
+    }
+
+    .hgt-title .hgt-down {
+        color: var(--down);
+    }
+
+    .hgt-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+    }
+
+    .hgt-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6em;
+        font-size: 0.9em;
+    }
+
+    .hgt-track {
+        height: 0.5em;
+        border-radius: 0.3em;
+        background: var(--soft);
+        overflow: hidden;
+    }
+
+    .hgt-fill {
+        height: 100%;
+        background: var(--accent-color);
+    }
+
+    .hgt-last .hgt-fill {
+        background: color-mix(in srgb, var(--content-color) 35%, transparent);
+    }
+
+    /* Zahlen im Vergleich als Tabelle: Zeilen Verbrauch und Heizgradtage, Spalten laufender Zeitraum und Vorjahr */
+    .hgt-table {
+        display: grid;
+        grid-template-columns: auto 1fr 1fr;
+        gap: 0.15em 0.8em;
+        margin-top: 0.3em;
+        padding-top: 0.4em;
+        border-top: 1px solid var(--line);
+        font-size: 0.75em;
+        overflow-wrap: anywhere;
+    }
+
+    .hgt-head {
+        color: var(--muted);
+        text-align: right;
+    }
+
+    .hgt-rowlabel {
+        color: var(--muted);
+    }
+
+    .hgt-cell {
+        text-align: right;
+        font-weight: 700;
+    }
+
+    /* Die Kachel zeigt so viel, wie in die Höhe passt. Die Stufe misst fit() und blendet von hinten nach vorn aus:
+       5 alles, 4 Monat ohne Tabelle, 3 Monat als eine Zeile, 2 nur das Jahr, 1 Jahr ohne Tabelle, 0 nur die Kennzahl */
+    .hgt[data-level="0"] .hgt-section,
+    .hgt[data-level="1"] .hgt-table,
+    .hgt[data-level="1"] .hgt-month,
+    .hgt[data-level="2"] .hgt-month,
+    .hgt[data-level="3"] .hgt-month,
+    .hgt[data-level="4"] .hgt-month .hgt-table {
+        display: none;
+    }
+
+    /* Kompakte Monatszeile, erscheint nur in Stufe 3 */
+    .hgt-monthline {
+        display: none;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.2em 0.8em;
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.6em 0.9em;
+    }
+
+    .hgt[data-level="3"] .hgt-monthline {
+        display: flex;
+    }
+
+    .hgt-linetitle {
+        font-weight: 700;
+    }
+
+    .hgt-linevalue {
+        font-size: 0.9em;
+    }
+
+    .hgt-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .hgt-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .hgt-tip-title {
+        font-weight: 700;
+    }
+
+    .hgt-hint {
+        cursor: default;
+    }
+
+    .hgt-action {
+        cursor: pointer;
+    }
+
+    .hgt-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="hgt" id="hgt"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('hgt');
+        var state = null;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'hgt-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'hgt-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('hgt-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('hgt-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.hgt-hint')) {
+                hideTip();
+            }
+        });
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return value.toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            var height = Math.max(0, window.innerHeight - space);
+            root.style.height = height + 'px';
+
+            // Stufe suchen: von allem nach weniger, bis der Inhalt in die Höhe passt
+            for (var level = 5; level >= 0; level--) {
+                root.setAttribute('data-level', String(level));
+                if (root.scrollHeight <= root.clientHeight + 1) {
+                    break;
+                }
+            }
+        }
+
+        // Weniger Verbrauch je Heizgradtag ist besser (grün), mehr ist schlechter (rot)
+        function changeNode(change, className, texts) {
+            var box = el('span');
+            if (Math.abs(change) < 0.05) {
+                box.textContent = '–';
+                return box;
+            }
+            box.appendChild(el('span', change > 0 ? 'hgt-up' : 'hgt-down', (change > 0 ? '▲ +' : '▼ ') + fmt(change, 1) + ' %'));
+            box.appendChild(document.createTextNode(' ' + texts.toLastYear));
+            return box;
+        }
+
+        function bar(label, period, max, unit, last) {
+            var row = el('div', 'hgt-row' + (last ? ' hgt-last' : ''));
+            var line = el('div', 'hgt-line');
+            line.appendChild(el('span', '', label));
+            line.appendChild(el('span', '', fmt(period.perDegreeDay, 3) + ' ' + unit + '/Kd'));
+            row.appendChild(line);
+            var track = el('div', 'hgt-track');
+            var fill = el('div', 'hgt-fill');
+            fill.style.width = (max > 0 ? period.perDegreeDay / max * 100 : 0) + '%';
+            track.appendChild(fill);
+            row.appendChild(track);
+            var openable = state.clickOpen === true && state.sourceId > 0 && typeof openObject === 'function';
+            hint(row, function () {
+                var lines = [label, fmt(period.perDegreeDay, 3) + ' ' + unit + '/Kd',
+                    state.texts.consumption + ': ' + fmt(period.consumption, 1) + ' ' + unit,
+                    state.texts.degreeDays + ': ' + fmt(period.degreeDays, 0) + ' Kd'];
+                return openable ? lines.concat([state.texts.openHint]) : lines;
+            }, openable ? function () { openObject(state.sourceId); } : null);
+            return row;
+        }
+
+        function section(title, current, previous, change, texts, unit, extraClass, labels) {
+            var box = el('div', 'hgt-section' + (extraClass ? ' ' + extraClass : ''));
+            var head = el('div', 'hgt-title');
+            head.appendChild(el('span', '', title));
+            // Die Veränderung des Jahres steht schon oben, dort entfällt sie hier
+            if (change !== null) {
+                head.appendChild(changeNode(change, '', texts));
+            }
+            box.appendChild(head);
+            var max = Math.max(current.perDegreeDay, previous.perDegreeDay);
+            box.appendChild(bar(labels[0], current, max, unit, false));
+            box.appendChild(bar(labels[1], previous, max, unit, true));
+
+            // Tabelle mit Spaltenköpfen: links der laufende Zeitraum, rechts derselbe Zeitraum im Vorjahr
+            var table = el('div', 'hgt-table');
+            ['', labels[0], labels[1]].forEach(function (text) {
+                table.appendChild(el('span', 'hgt-head', text));
+            });
+            [
+                [texts.consumption, fmt(current.consumption, 1) + ' ' + unit, fmt(previous.consumption, 1) + ' ' + unit],
+                [texts.degreeDays, fmt(current.degreeDays, 0) + ' Kd', fmt(previous.degreeDays, 0) + ' Kd']
+            ].concat(current.perArea !== undefined && previous.perArea !== undefined ? [[texts.perArea, fmt(current.perArea, 1) + ' ' + unit + '/m\u00B2', fmt(previous.perArea, 1) + ' ' + unit + '/m\u00B2']] : []).forEach(function (row) {
+                table.appendChild(el('span', 'hgt-rowlabel', row[0]));
+                table.appendChild(el('span', 'hgt-cell', row[1]));
+                table.appendChild(el('span', 'hgt-cell', row[2]));
+            });
+            box.appendChild(table);
+            return box;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            root.textContent = '';
+            var periods = state.periods;
+
+            if (!periods || !periods.Year || periods.LastYearYear.degreeDays === 0 && periods.Year.degreeDays === 0) {
+                root.appendChild(el('div', 'hgt-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var hero = el('div', 'hgt-hero');
+            var main = el('div');
+            main.appendChild(el('div', 'hgt-label', texts.year + ' · ' + texts.consumption + ' ' + texts.perDegreeDay));
+            var number = el('div', 'hgt-number', fmt(periods.Year.perDegreeDay, 3));
+            number.appendChild(el('small', '', state.unit + '/Kd'));
+            main.appendChild(number);
+            hero.appendChild(main);
+            var change = el('div', 'hgt-change');
+            change.appendChild(changeNode(state.yearChange, '', texts));
+            hero.appendChild(change);
+            root.appendChild(hero);
+
+            root.appendChild(section(texts.year, periods.Year, periods.LastYearYear, null, texts, state.unit, 'hgt-year', [texts.thisPeriod, texts.lastPeriod]));
+            root.appendChild(section(texts.month, periods.Month, periods.LastYearMonth, state.monthChange, texts, state.unit, 'hgt-month', [texts.thisMonth, texts.lastMonth]));
+
+            // Kompakte Monatszeile für den Platz zwischen Jahr und ausführlichem Monat
+            var line = el('div', 'hgt-monthline');
+            line.appendChild(el('span', 'hgt-linetitle', texts.month));
+            line.appendChild(el('span', 'hgt-linevalue', fmt(periods.Month.perDegreeDay, 3) + ' / ' + fmt(periods.LastYearMonth.perDegreeDay, 3) + ' ' + state.unit + '/Kd'));
+            line.appendChild(changeNode(state.monthChange, '', texts));
+            root.appendChild(line);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        // Die Visualisierung setzt die Ränder am body eventuell erst nach dem Laden. Deshalb wird die Höhe nach dem Laden
+        // und bei jeder Änderung von Rand oder Fenster neu berechnet, sonst ist die Kachel zu hoch und die Seite scrollt.
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

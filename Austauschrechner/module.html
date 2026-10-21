@@ -1,0 +1,494 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .aus {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --good: #2fb344;
+        --bad: #e5484d;
+        --neutral: #868e96;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent
+           in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .aus::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .aus::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .aus::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .aus::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .aus * {
+        box-sizing: border-box;
+    }
+
+    .aus > * {
+        flex-shrink: 0;
+    }
+
+    .aus-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .aus-hero {
+        display: flex;
+        align-items: center;
+        gap: 0.8em;
+    }
+
+    .aus-icon {
+        flex: none;
+        width: 3em;
+        height: 3em;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        background: var(--neutral);
+    }
+
+    .aus-worth .aus-icon {
+        background: var(--good);
+    }
+
+    .aus-not .aus-icon {
+        background: var(--bad);
+    }
+
+    .aus-icon svg {
+        width: 1.7em;
+        height: 1.7em;
+    }
+
+    .aus-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .aus-worth .aus-title {
+        color: var(--good);
+    }
+
+    .aus-not .aus-title {
+        color: var(--bad);
+    }
+
+    .aus-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .aus-sub {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .aus-payback {
+        margin-left: auto;
+        text-align: right;
+    }
+
+    .aus-big {
+        font-size: 2em;
+        font-weight: 700;
+        line-height: 1.05;
+    }
+
+    .aus-big small {
+        font-size: 0.45em;
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 0.3em;
+    }
+
+    /* Lebensdauer als Balken: bis zur Amortisation rot, danach grün */
+    .aus-time {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3em;
+    }
+
+    .aus-track {
+        position: relative;
+        display: flex;
+        height: 0.8em;
+        border-radius: 0.4em;
+        overflow: hidden;
+        background: var(--soft);
+    }
+
+    .aus-before {
+        background: var(--bad);
+        opacity: 0.8;
+    }
+
+    .aus-after {
+        background: var(--good);
+    }
+
+    .aus-scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    /* Karten brechen bei wenig Breite in weitere Zeilen um, damit nichts abgeschnitten wird */
+    /* Übriger Platz verteilt sich auf die Kartenzeilen, damit unten keine Lücke bleibt */
+    .aus-cards {
+        flex: 1 1 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(6.5em, 1fr));
+        grid-auto-rows: minmax(min-content, 1fr);
+        gap: 0.5em;
+    }
+
+    .aus-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.45em 0.7em;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .aus-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .aus-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .aus-good {
+        color: var(--good);
+    }
+
+    .aus-bad {
+        color: var(--bad);
+    }
+
+    /* Eingaben: auf- und zuklappbar, die Angabe zum alten Gerät nur ohne Archivvariable */
+    .aus-toggle {
+        align-self: flex-start;
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.35em 1em;
+        cursor: pointer;
+    }
+
+    .aus-toggle:hover {
+        background: var(--soft);
+    }
+
+    .aus-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
+        gap: 0.6em;
+    }
+
+    .aus-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+        min-width: 0;
+        justify-content: space-between;
+    }
+
+    .aus-field label {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: flex-end;
+        font-size: 0.75em;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+    }
+
+    .aus-field input {
+        width: 100%;
+        font: inherit;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.4em 0.6em;
+    }
+
+    .aus-field input:focus {
+        outline: 2px solid var(--accent-color);
+        outline-offset: 0;
+    }
+
+    .aus-field input:disabled {
+        opacity: 0.5;
+    }
+
+    /* Die Kachel zeigt so viel, wie in die Höhe passt. Die Stufe misst fit(): 2 alles, 1 ohne Karten, 0 nur Ergebnis */
+    .aus[data-level="1"] .aus-cards,
+    .aus[data-level="0"] .aus-cards,
+    .aus[data-level="0"] .aus-time {
+        display: none;
+    }
+
+    .aus-hint {
+        font-size: 0.85em;
+        color: var(--muted);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="aus" id="aus"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('aus');
+        var state = null;
+        var pending = null;
+        var editOpen = null;
+
+        try {
+            var saved = localStorage.getItem('aus.edit');
+            editOpen = saved === null ? null : saved === '1';
+        } catch (e) {
+        }
+
+        var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+        var CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+        var MINUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/></svg>';
+
+        // Felder der Eingaben: Schlüssel, Einheit, Schrittweite
+        var FIELDS = [
+            ['OldWatt', 'W', 'any'],
+            ['RuntimeHours', 'h', 'any'],
+            ['NewKWhYear', 'kWh', 'any'],
+            ['NewWatt', 'W', 'any'],
+            ['PurchasePrice', '€', 'any'],
+            ['Lifetime', '', '1'],
+            ['PriceIncrease', '%', 'any']
+        ];
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return value.toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+            for (var level = 2; level >= 0; level--) {
+                root.setAttribute('data-level', String(level));
+                if (root.scrollHeight <= root.clientHeight + 1) {
+                    break;
+                }
+            }
+        }
+
+        function card(label, value, note, tone) {
+            var box = el('div', 'aus-card');
+            box.appendChild(el('div', 'aus-label', label));
+            box.appendChild(el('div', 'aus-value' + (tone ? ' ' + tone : ''), value));
+            if (note) {
+                box.appendChild(el('div', 'aus-note', note));
+            }
+            return box;
+        }
+
+        function send(key, value) {
+            if (typeof requestAction === 'function') {
+                requestAction('Set', JSON.stringify({key: key, value: value}));
+            }
+        }
+
+        function buildForm(texts) {
+            var form = el('div', 'aus-form');
+            FIELDS.forEach(function (field) {
+                var key = field[0];
+                // Die Leistung des alten Geräts nur ohne Archivvariable, sonst steht dort der gemessene Wert
+                if (key === 'OldWatt' && state.fromArchive) {
+                    return;
+                }
+                var wrap = el('div', 'aus-field');
+                wrap.appendChild(el('label', '', texts[key] + (field[1] ? ' (' + field[1] + ')' : '')));
+                var input = el('input');
+                input.type = 'number';
+                input.step = field[2];
+                input.min = '0';
+                input.inputMode = 'decimal';
+                input.value = String(state.inputs[key]);
+                input.addEventListener('change', function () {
+                    if (input.value !== '' && !isNaN(Number(input.value))) {
+                        send(key, Number(input.value));
+                    }
+                });
+                // Eingabetaste übernimmt den Wert
+                input.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter') {
+                        input.blur();
+                    }
+                });
+                wrap.appendChild(input);
+                form.appendChild(wrap);
+            });
+            return form;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            // Während der Eingabe nicht neu aufbauen, sonst geht der Fokus verloren
+            if (root.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') {
+                pending = state;
+                return;
+            }
+            pending = null;
+            var texts = state.texts;
+            root.textContent = '';
+            var result = state.result;
+            var tone = result ? 'aus-' + result.state : 'aus-none';
+            root.className = 'aus ' + tone;
+
+            var hero = el('div', 'aus-hero');
+            var icon = el('div', 'aus-icon');
+            icon.innerHTML = !result ? MINUS : (result.state === 'worth' ? CHECK : (result.state === 'not' ? CROSS : MINUS));
+            hero.appendChild(icon);
+            var text = el('div', 'aus-text');
+            text.appendChild(el('div', 'aus-title', !result ? texts.incomplete : texts[result.state]));
+            if (result && result.state !== 'none') {
+                text.appendChild(el('div', 'aus-sub', fmt(result.yearly, 2) + ' € / ' + texts.years + ' · ' + texts.gain + ' ' + fmt(result.net, 0) + ' €'));
+            }
+            hero.appendChild(text);
+            if (result && result.state !== 'none') {
+                var payback = el('div', 'aus-payback');
+                payback.appendChild(el('div', 'aus-label', texts.payback));
+                var big = el('div', 'aus-big', fmt(result.payback, 1));
+                big.appendChild(el('small', '', texts.years));
+                payback.appendChild(big);
+                hero.appendChild(payback);
+            }
+            root.appendChild(hero);
+
+            if (result) {
+                // Lebensdauer: Der rote Teil ist die Zeit bis zur Amortisation
+                var life = state.inputs.Lifetime;
+                var time = el('div', 'aus-time');
+                var track = el('div', 'aus-track');
+                var share = result.state === 'none' ? 100 : Math.min(100, result.payback / life * 100);
+                var before = el('div', 'aus-before');
+                before.style.width = share + '%';
+                track.appendChild(before);
+                if (result.state === 'worth') {
+                    var after = el('div', 'aus-after');
+                    after.style.width = (100 - share) + '%';
+                    track.appendChild(after);
+                }
+                time.appendChild(track);
+                var scale = el('div', 'aus-scale');
+                scale.appendChild(el('span', '', '0'));
+                scale.appendChild(el('span', '', texts.lifetime + ' ' + life + ' ' + texts.years));
+                time.appendChild(scale);
+                root.appendChild(time);
+
+                var cards = el('div', 'aus-cards');
+                cards.appendChild(card(texts.old, fmt(result.old, 0) + ' kWh', state.fromArchive ? texts.fromArchive : null));
+                cards.appendChild(card(texts.new, fmt(result.new, 0) + ' kWh', null));
+                cards.appendChild(card(texts.savingYear, fmt(result.yearly, 2) + ' €', fmt(result.saving, 0) + ' kWh', result.yearly > 0 ? 'aus-good' : 'aus-bad'));
+                root.appendChild(cards);
+            }
+
+            // Eingaben: ohne Ergebnis gleich offen, damit sich die fehlenden Werte eintragen lassen
+            var open = editOpen === null ? !result : editOpen;
+            var toggle = el('button', 'aus-toggle', texts.inputs + (open ? ' ▴' : ' ▾'));
+            toggle.type = 'button';
+            toggle.addEventListener('click', function () {
+                editOpen = !open;
+                try {
+                    localStorage.setItem('aus.edit', editOpen ? '1' : '0');
+                } catch (e) {
+                }
+                render();
+            });
+            root.appendChild(toggle);
+            if (open) {
+                root.appendChild(buildForm(texts));
+            }
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        // Nach der Eingabe den zurückgehaltenen Stand anzeigen
+        document.addEventListener('focusout', function () {
+            setTimeout(function () {
+                if (pending) {
+                    state = pending;
+                    render();
+                }
+            }, 150);
+        });
+
+        // Die Visualisierung setzt die Ränder am body eventuell erst nach dem Laden. Deshalb wird die Höhe nach dem Laden
+        // und bei jeder Änderung von Rand oder Fenster neu berechnet, sonst ist die Kachel zu hoch und die Seite scrollt.
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

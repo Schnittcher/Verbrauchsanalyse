@@ -1,0 +1,743 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .grl {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --up: #e5484d;
+        --down: #2fb344;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent
+           in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .grl::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .grl::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .grl::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .grl::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    /* Das Popup hängt am body, außerhalb von .grl, und braucht deshalb dieselben Farbableitungen */
+    .grl-modal {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+    }
+
+    .grl *,
+    .grl-modal * {
+        box-sizing: border-box;
+    }
+
+    .grl > *:not(.grl-chart) {
+        flex-shrink: 0;
+    }
+
+    .grl-hero {
+        flex: none;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.8em;
+        flex-wrap: wrap;
+    }
+
+    .grl-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .grl-number {
+        font-size: 3.2em;
+        line-height: 1;
+        font-weight: 700;
+    }
+
+    .grl-number small {
+        font-size: 0.4em;
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 0.3em;
+    }
+
+    .grl-last {
+        text-align: right;
+        font-size: 0.85em;
+    }
+
+    .grl-last .grl-up {
+        color: var(--up);
+        font-weight: 700;
+    }
+
+    .grl-last .grl-down {
+        color: var(--down);
+        font-weight: 700;
+    }
+
+    /* Balken der letzten Nächte mit der Linie der Grundlast */
+    .grl-chart {
+        flex: 1;
+        min-height: 3em;
+        padding: 0.4em 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    /* Die Kachel zeigt so viel, wie in die Höhe passt. Die Stufe misst fit(): 2 alles mit Karten und Rangliste, 1 Diagramm füllt den Rest, 0 nur die Zahlen */
+    .grl[data-level="2"] .grl-chart {
+        flex: none;
+        height: 8em;
+    }
+
+    .grl[data-level="0"] .grl-chart,
+    .grl[data-level="0"] .grl-axis,
+    .grl[data-level="0"] .grl-chip {
+        display: none;
+    }
+
+    .grl-bars {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        gap: 0.25em;
+    }
+
+    .grl-bar {
+        flex: 1;
+        min-width: 2px;
+        border-radius: 0.25em 0.25em 0 0;
+        background: color-mix(in srgb, var(--accent-color) 45%, transparent);
+    }
+
+    .grl-bar.grl-latest {
+        background: var(--accent-color);
+    }
+
+    .grl-median {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 2px dashed var(--content-color);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .grl-axis {
+        flex: none;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.7em;
+        color: var(--muted);
+    }
+
+    /* Karten brechen bei wenig Breite in weitere Zeilen um, damit nichts abgeschnitten wird */
+    .grl-stats {
+        flex: none;
+        display: none;
+        grid-template-columns: repeat(auto-fit, minmax(8.5em, 1fr));
+        gap: 0.6em;
+    }
+
+    .grl[data-level="2"] .grl-stats {
+        display: grid;
+    }
+
+    .grl-card {
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.6em 0.8em;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .grl-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .grl-away {
+        margin-top: 0.3em;
+        font-size: 0.8em;
+    }
+
+    .grl-away-label {
+        color: var(--muted);
+    }
+
+    .grl-away .grl-up {
+        color: var(--up);
+        font-weight: 700;
+    }
+
+    .grl-away .grl-down {
+        color: var(--down);
+        font-weight: 700;
+    }
+
+    .grl-sub {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .grl-sub .grl-up {
+        color: var(--up);
+        font-weight: 700;
+    }
+
+    .grl-sub .grl-down {
+        color: var(--down);
+        font-weight: 700;
+    }
+
+    .grl-sharetext {
+        min-width: 0;
+    }
+
+    .grl-ring {
+        --p: 0;
+        width: 2.2em;
+        height: 2.2em;
+        flex: none;
+        border-radius: 50%;
+        background: conic-gradient(var(--accent-color) calc(var(--p) * 1%), var(--line) 0);
+        display: grid;
+        place-items: center;
+    }
+
+    .grl-ring::after {
+        content: '';
+        width: 1.5em;
+        height: 1.5em;
+        border-radius: 50%;
+        background: var(--card-color, transparent);
+    }
+
+    .grl-share {
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+    }
+
+    .grl-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4em;
+        overflow-y: auto;
+        /* Scrollbalken schmal und dezent in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+    }
+
+    .grl-list::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .grl-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .grl-list::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .grl-list::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .grl-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+    }
+
+    .grl-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6em;
+    }
+
+    .grl-none .grl-name,
+    .grl-none .grl-watt {
+        color: var(--muted);
+    }
+
+    /* Lange Namen brechen um, statt abgeschnitten zu werden */
+    .grl-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .grl-watt {
+        flex: none;
+        font-size: 0.9em;
+    }
+
+    .grl-track {
+        height: 0.45em;
+        border-radius: 0.3em;
+        background: var(--soft);
+        overflow: hidden;
+    }
+
+    .grl-fill {
+        height: 100%;
+        background: var(--accent-color);
+    }
+
+    /* Die Verbraucherliste öffnet in einem kleinen Popup, in der Kachel steht nur der Knopf */
+    /* Kleine Ansicht: schlanker Knopf unter dem Diagramm, in der großen Ansicht übernimmt die Karte im Raster */
+    .grl-chip {
+        align-self: flex-start;
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .grl-chip:hover {
+        background: var(--soft);
+    }
+
+    .grl[data-level="2"] .grl-chip {
+        display: none;
+    }
+
+    .grl-cardbtn {
+        font: inherit;
+        color: var(--content-color);
+        text-align: left;
+        border: 0;
+        cursor: pointer;
+    }
+
+    .grl-cardbtn:hover {
+        background: color-mix(in srgb, var(--content-color) 12%, transparent);
+    }
+
+    .grl-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1em;
+        background: rgba(0, 0, 0, 0.45);
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .grl-dialog {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6em;
+        width: min(26em, 100%);
+        max-height: 80%;
+        padding: 1em;
+        border-radius: 1em;
+        background: var(--card-color);
+        box-shadow: 0 0.5em 2em rgba(0, 0, 0, 0.4);
+    }
+
+    .grl-dialog-head {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6em;
+        font-weight: 700;
+    }
+
+    .grl-close {
+        flex: none;
+        font: inherit;
+        line-height: 1;
+        color: var(--content-color);
+        background: transparent;
+        border: 0;
+        padding: 0.2em 0.4em;
+        cursor: pointer;
+    }
+
+    .grl-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .grl-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .grl-tip-title {
+        font-weight: 700;
+    }
+
+    .grl-hint {
+        cursor: default;
+    }
+
+    .grl-action {
+        cursor: pointer;
+    }
+
+    .grl-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="grl" id="grl"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('grl');
+        var state = null;
+        var popupOpen = false;
+        var modal = null;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'grl-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'grl-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('grl-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('grl-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.grl-hint')) {
+                hideTip();
+            }
+        });
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        // Wochentag und Datum einer Nacht, zum Beispiel "Mi., 15.10."
+        function dayLabel(day) {
+            return new Date(day + 'T12:00:00').toLocaleDateString(undefined, {weekday: 'short', day: 'numeric', month: 'numeric'});
+        }
+
+        function fmt(value, digits) {
+            return value.toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+            for (var level = 2; level >= 0; level--) {
+                root.setAttribute('data-level', String(level));
+                if (root.scrollHeight <= root.clientHeight + 1) {
+                    break;
+                }
+            }
+        }
+
+        function card(label, value) {
+            var box = el('div', 'grl-card');
+            box.appendChild(el('div', 'grl-label', label));
+            box.appendChild(el('div', 'grl-value', value));
+            return box;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            root.textContent = '';
+
+            if (!state.nights || state.nights.length === 0) {
+                root.appendChild(el('div', 'grl-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var hero = el('div', 'grl-hero');
+            var main = el('div');
+            main.appendChild(el('div', 'grl-label', texts.baseLoad));
+            var number = el('div', 'grl-number', fmt(state.baseLoad, 0));
+            number.appendChild(el('small', '', 'W'));
+            main.appendChild(number);
+            hero.appendChild(main);
+
+            // Letzte Nacht gegen die typische Grundlast: weniger ist besser
+            var diff = state.lastNight - state.baseLoad;
+            var last = el('div', 'grl-last');
+            last.appendChild(el('div', 'grl-label', texts.lastNight));
+            last.appendChild(document.createTextNode(fmt(state.lastNight, 0) + ' W '));
+            if (Math.abs(diff) >= 0.5) {
+                last.appendChild(el('span', diff > 0 ? 'grl-up' : 'grl-down', (diff > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(diff), 0) + ' W'));
+            }
+            // Verbrauch bei Abwesenheit klein unter der Grundlast, mit dem Mehrverbrauch gegenüber der Grundlast.
+            // Links, weil er sich auf die Grundlast bezieht und nicht auf die letzte Nacht.
+            if (state.absence) {
+                var extra = state.absence.extra;
+                var away = el('div', 'grl-away');
+                away.appendChild(el('span', 'grl-away-label', texts.away + ' '));
+                away.appendChild(document.createTextNode(fmt(state.absence.load, 0) + ' W '));
+                if (Math.abs(extra) >= 0.5) {
+                    away.appendChild(el('span', extra > 0 ? 'grl-up' : 'grl-down', (extra > 0 ? '+' : '\u2212') + fmt(Math.abs(extra), 0) + ' W'));
+                }
+                main.appendChild(away);
+                hint(away, function () {
+                    return [texts.away, fmt(state.absence.load, 0) + ' W',
+                        (extra > 0 ? '+' : '\u2212') + fmt(Math.abs(extra), 0) + ' W \u00B7 ' + state.absence.hours + ' ' + texts.awayHours];
+                });
+            }
+            hero.appendChild(last);
+            root.appendChild(hero);
+
+            var chart = el('div', 'grl-chart');
+            var bars = el('div', 'grl-bars');
+            var max = Math.max.apply(null, state.nights.map(function (n) { return n.watt; }).concat([state.baseLoad, 1]));
+            state.nights.forEach(function (night, index) {
+                var bar = el('div', 'grl-bar' + (index === state.nights.length - 1 ? ' grl-latest' : ''));
+                bar.style.height = (night.watt / max * 100) + '%';
+                hint(bar, function () {
+                    var lines = [dayLabel(night.day), fmt(night.watt, 0) + ' W', texts.typical + ': ' + fmt(state.baseLoad, 0) + ' W'];
+                    return (state.clickOpen && state.sourceId && typeof openObject === 'function') ? lines.concat([texts.openHint]) : lines;
+                }, (state.clickOpen && state.sourceId && typeof openObject === 'function') ? function () { openObject(state.sourceId); } : null);
+                bars.appendChild(bar);
+            });
+            var median = el('div', 'grl-median');
+            median.style.bottom = (state.baseLoad / max * 100) + '%';
+            bars.appendChild(median);
+            chart.appendChild(bars);
+            root.appendChild(chart);
+
+            var axis = el('div', 'grl-axis');
+            axis.appendChild(el('span', '', state.nights[0].day.slice(5)));
+            axis.appendChild(el('span', '', texts.nights));
+            axis.appendChild(el('span', '', state.nights[state.nights.length - 1].day.slice(5)));
+            root.appendChild(axis);
+
+            function openPopup() {
+                popupOpen = true;
+                renderPopup();
+            }
+            if (state.ranking && state.ranking.length > 0) {
+                var chip = el('button', 'grl-chip', texts.ranking + ' (' + state.ranking.length + ') ›');
+                chip.type = 'button';
+                chip.addEventListener('click', openPopup);
+                root.appendChild(chip);
+            }
+
+            var stats = el('div', 'grl-stats');
+            stats.appendChild(card(texts.yearKWh, fmt(state.yearKWh, 0)));
+            stats.appendChild(card(texts.yearCost, fmt(state.yearCost, 2) + ' €'));
+            var share = el('div', 'grl-card grl-share');
+            var ring = el('div', 'grl-ring');
+            ring.style.setProperty('--p', Math.min(100, state.share));
+            share.appendChild(ring);
+            var shareText = el('div', 'grl-sharetext');
+            shareText.appendChild(el('div', 'grl-label', texts.share));
+            shareText.appendChild(el('div', 'grl-value', fmt(state.share, 1) + ' %'));
+            share.appendChild(shareText);
+            stats.appendChild(share);
+
+
+            // Die Verbraucherliste öffnet im Popup. Der Zugang ist eine vierte Karte im Raster und füllt dessen freien Platz.
+            if (state.ranking && state.ranking.length > 0) {
+                var more = el('button', 'grl-card grl-cardbtn');
+                more.type = 'button';
+                more.appendChild(el('div', 'grl-label', texts.ranking));
+                more.appendChild(el('div', 'grl-value', state.ranking.length + ' ›'));
+                more.addEventListener('click', openPopup);
+                stats.appendChild(more);
+            }
+            root.appendChild(stats);
+            fit();
+            renderPopup();
+        }
+
+        // Popup mit der Verbraucherliste. Es hängt am body und bleibt bei neuen Daten offen.
+        function renderPopup() {
+            if (modal) {
+                modal.remove();
+                modal = null;
+            }
+            if (!popupOpen || !state || !state.ranking || state.ranking.length === 0) {
+                return;
+            }
+            var texts = state.texts;
+            modal = el('div', 'grl-modal');
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    closePopup();
+                }
+            });
+            var dialog = el('div', 'grl-dialog');
+            var head = el('div', 'grl-dialog-head');
+            head.appendChild(el('span', '', texts.ranking));
+            var close = el('button', 'grl-close', '✕');
+            close.type = 'button';
+            close.addEventListener('click', closePopup);
+            head.appendChild(close);
+            dialog.appendChild(head);
+            var list = el('div', 'grl-list');
+            var top = state.ranking[0].watt || 1;
+            state.ranking.forEach(function (entry) {
+                var row = el('div', 'grl-row' + (entry.watt === null ? ' grl-none' : ''));
+                var line = el('div', 'grl-line');
+                line.appendChild(el('span', 'grl-name', entry.name));
+                // Ohne Nachtdaten steht ein Hinweis statt Watt und Balken
+                line.appendChild(el('span', 'grl-watt', entry.watt === null ? texts.noNight : fmt(entry.watt, 1) + ' W'));
+                row.appendChild(line);
+                if (entry.watt !== null) {
+                    var track = el('div', 'grl-track');
+                    var fill = el('div', 'grl-fill');
+                    fill.style.width = (entry.watt / top * 100) + '%';
+                    track.appendChild(fill);
+                    row.appendChild(track);
+                }
+                list.appendChild(row);
+            });
+            dialog.appendChild(list);
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+        }
+
+        function closePopup() {
+            popupOpen = false;
+            renderPopup();
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && popupOpen) {
+                closePopup();
+            }
+        });
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        // Die Visualisierung setzt die Ränder am body eventuell erst nach dem Laden. Deshalb wird die Höhe nach dem Laden
+        // und bei jeder Änderung von Rand oder Fenster neu berechnet, sonst ist die Kachel zu hoch und die Seite scrollt.
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

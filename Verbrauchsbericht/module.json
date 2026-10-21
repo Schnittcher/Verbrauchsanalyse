@@ -1,0 +1,16 @@
+{
+    "id": "{6AAFDE08-2263-4B3F-AD76-165DF9798882}",
+    "name": "Verbrauchsbericht",
+    "type": 3,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "VBR",
+    "url": "https://deinsmarthome.info"
+}

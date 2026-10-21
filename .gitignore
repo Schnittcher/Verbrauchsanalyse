@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+libs/composer.*
+libs/phpunit.*
+docs/adr/
+docs/FORUM_POST.md
+docs/FORUM_CHANGELOG.md
+.phpunit.result.cache
+Thumbs.db

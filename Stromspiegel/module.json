@@ -1,0 +1,18 @@
+{
+    "id": "{34F6DB38-50F8-4391-A6D4-2A6A8898625E}",
+    "name": "Stromspiegel",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Stromspiegel Vergleich"
+    ],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "SSP",
+    "url": "https://deinsmarthome.info"
+}

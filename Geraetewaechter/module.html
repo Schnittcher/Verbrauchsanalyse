@@ -1,0 +1,430 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .gwa {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --ok: #2fb344;
+        --alarm: #e5484d;
+        --low: #3b82f6;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .gwa::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .gwa::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .gwa::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .gwa::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .gwa * {
+        box-sizing: border-box;
+    }
+
+    .gwa > * {
+        flex-shrink: 0;
+    }
+
+    .gwa-hero {
+        display: flex;
+        align-items: center;
+        gap: 0.8em;
+    }
+
+    .gwa-icon {
+        flex: none;
+        width: 3em;
+        height: 3em;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        background: var(--ok);
+    }
+
+    .gwa-alarm .gwa-icon {
+        background: var(--alarm);
+    }
+
+    .gwa-icon svg {
+        width: 1.8em;
+        height: 1.8em;
+    }
+
+    .gwa-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .gwa-alarm .gwa-title {
+        color: var(--alarm);
+    }
+
+    .gwa-sub {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .gwa-section {
+        font-size: 0.8em;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.2em;
+    }
+
+    .gwa-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5em;
+    }
+
+    .gwa-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 0.8em;
+        row-gap: 0.1em;
+        align-items: center;
+        background: var(--soft);
+        border-radius: 0.8em;
+        padding: 0.45em 0.7em;
+    }
+
+    .gwa-item.gwa-small {
+        background: transparent;
+        padding: 0.2em 0.2em;
+    }
+
+    .gwa-name {
+        font-weight: 600;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .gwa-values {
+        font-size: 0.8em;
+        color: var(--muted);
+        grid-column: 1;
+    }
+
+    .gwa-badge {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        justify-self: end;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .gwa-badge.gwa-high {
+        color: var(--alarm);
+    }
+
+    .gwa-badge.gwa-low {
+        color: var(--low);
+    }
+
+    .gwa-badge.gwa-fine,
+    .gwa-badge.gwa-nodata {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 0.85em;
+    }
+
+    .gwa-spark {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 1.6em;
+        margin-top: 0.2em;
+    }
+
+    .gwa-spark > span {
+        flex: 1;
+        min-height: 1px;
+        border-radius: 1px 1px 0 0;
+        background: color-mix(in srgb, var(--accent-color) 55%, transparent);
+    }
+
+    .gwa-spark > span.gwa-recent {
+        background: var(--accent-color);
+    }
+
+    .gwa-high .gwa-spark > span.gwa-recent {
+        background: var(--alarm);
+    }
+
+    .gwa-lowrow .gwa-spark > span.gwa-recent {
+        background: var(--low);
+    }
+
+    .gwa-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .gwa-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .gwa-tip-title {
+        font-weight: 700;
+    }
+
+    .gwa-hint {
+        cursor: default;
+    }
+
+    .gwa-action {
+        cursor: pointer;
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="gwa" id="gwa"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('gwa');
+        var state = null;
+        var CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+        var WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l9 16H3z"/><path d="M12 10v5M12 18v.5"/></svg>';
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'gwa-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'gwa-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('gwa-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('gwa-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.gwa-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function dayLabel(offsetFromEnd) {
+            var date = new Date();
+            date.setHours(12, 0, 0, 0);
+            date.setDate(date.getDate() - offsetFromEnd);
+            return date.toLocaleDateString(undefined, {weekday: 'short', day: 'numeric', month: 'numeric'});
+        }
+
+        function buildItem(device, data, texts) {
+            var status = device.status;
+            var small = status === 'ok' || status === 'nodata';
+            var item = el('div', 'gwa-item' + (small ? ' gwa-small' : '') + (status === 'high' ? ' gwa-high' : '') + (status === 'low' ? ' gwa-lowrow' : ''));
+            item.appendChild(el('div', 'gwa-name', device.name));
+
+            var badge;
+            if (status === 'high' || status === 'low') {
+                var text = device.change === null ? '▲' : (device.change > 0 ? '▲ +' : '▼ −') + fmt(Math.abs(device.change), 0) + ' %';
+                badge = el('div', 'gwa-badge gwa-' + status, text);
+            } else {
+                badge = el('div', 'gwa-badge gwa-' + (status === 'ok' ? 'fine' : 'nodata'), status === 'ok' ? '✓' : texts.nodata);
+            }
+            item.appendChild(badge);
+
+            if (device.recent !== undefined) {
+                item.appendChild(el('div', 'gwa-values', fmt(device.recent, 2) + ' ' + data.unit + ' ' + texts.perDay + ' · ' + texts.normal + ' ' + fmt(device.normal, 2)));
+            }
+            if (!small && device.spark) {
+                var spark = el('div', 'gwa-spark');
+                var max = Math.max.apply(null, device.spark.concat([0.001]));
+                device.spark.forEach(function (value, index) {
+                    var bar = el('span', index >= device.spark.length - data.check ? 'gwa-recent' : '');
+                    bar.style.height = Math.max(2, value / max * 100) + '%';
+                    hint(bar, function () {
+                        return [dayLabel(device.spark.length - index), fmt(value, 2) + ' ' + data.unit];
+                    });
+                    spark.appendChild(bar);
+                });
+                item.appendChild(spark);
+            }
+            var openable = state.clickOpen && device.id > 0 && typeof openObject === 'function';
+            hint(item, function () {
+                var lines = [device.name];
+                if (device.recent !== undefined) {
+                    lines.push(texts.recent + ': ' + fmt(device.recent, 2) + ' ' + data.unit + ' ' + texts.perDay);
+                    lines.push(texts.normal + ': ' + fmt(device.normal, 2) + ' ' + data.unit + ' ' + texts.perDay);
+                }
+                lines.push(texts[status === 'ok' ? 'fine' : status]);
+                return openable ? lines.concat([texts.openHint]) : lines;
+            }, openable ? function () {
+                openObject(device.id);
+            } : null);
+            return item;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            var data = state.data;
+            root.textContent = '';
+            if (!data || !data.devices || data.devices.length === 0) {
+                root.appendChild(el('div', 'gwa-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var flagged = data.devices.filter(function (device) {
+                return device.status === 'high' || device.status === 'low';
+            });
+            var hero = el('div', 'gwa-hero' + (flagged.length > 0 ? ' gwa-alarm' : ''));
+            var icon = el('div', 'gwa-icon');
+            icon.innerHTML = flagged.length > 0 ? WARN : CHECK;
+            hero.appendChild(icon);
+            var text = el('div');
+            text.appendChild(el('div', 'gwa-title', flagged.length > 0 ? flagged.length + ' ' + texts.alarm : texts.ok));
+            text.appendChild(el('div', 'gwa-sub', texts.last));
+            hero.appendChild(text);
+            root.appendChild(hero);
+
+            var list = el('div', 'gwa-list');
+            data.devices.forEach(function (device) {
+                list.appendChild(buildItem(device, data, texts));
+            });
+            root.appendChild(list);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

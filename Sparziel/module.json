@@ -1,0 +1,16 @@
+{
+    "id": "{FFC1B65D-5299-4165-9955-39CE78ACB022}",
+    "name": "Sparziel",
+    "type": 3,
+    "vendor": "",
+    "aliases": [],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "SPZ",
+    "url": "https://deinsmarthome.info"
+}

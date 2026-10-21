@@ -1,0 +1,575 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .vfl {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: 0.7em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .vfl::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .vfl::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .vfl::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .vfl::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .vfl * {
+        box-sizing: border-box;
+    }
+
+    .vfl > * {
+        flex-shrink: 0;
+    }
+
+    .vfl-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        align-items: flex-end;
+    }
+
+    .vfl-chip,
+    .vfl-btn {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .vfl-chip:hover,
+    .vfl-btn:hover {
+        background: var(--soft);
+    }
+
+    .vfl-chip.vfl-on,
+    .vfl-btn.vfl-primary {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .vfl-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2em;
+        font-size: 0.85em;
+    }
+
+    .vfl-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .vfl-field input {
+        font: inherit;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.3em 0.6em;
+    }
+
+    .vfl-summary {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.3em 1.2em;
+    }
+
+    .vfl-big {
+        font-size: 1.5em;
+        font-weight: 700;
+    }
+
+    .vfl-chart {
+        flex: 1 0 auto;
+        min-height: 12em;
+        position: relative;
+    }
+
+    .vfl-chart svg {
+        display: block;
+    }
+
+    .vfl-chart text {
+        font-family: inherit;
+        fill: var(--content-color);
+        paint-order: stroke;
+        stroke: var(--card-color, transparent);
+        stroke-width: 3px;
+        stroke-linejoin: round;
+        pointer-events: none;
+    }
+
+    .vfl-chart text.vfl-sub {
+        fill: var(--muted);
+    }
+
+    .vfl-message {
+        font-size: 0.85em;
+        color: var(--muted);
+        min-height: 1.2em;
+    }
+
+    .vfl-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .vfl-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .vfl-tip-title {
+        font-weight: 700;
+    }
+
+    .vfl-hint {
+        cursor: default;
+    }
+
+    .vfl-action {
+        cursor: pointer;
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="vfl" id="vfl"></div>
+
+<script>
+    (function () {
+        var NS = 'http://www.w3.org/2000/svg';
+        var root = document.getElementById('vfl');
+        var state = null;
+        var selected = null;
+        var customFrom = '';
+        var customTo = '';
+        var busy = false;
+        var drawnWidth = 0;
+        var drawnHeight = 0;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function svg(tag, attributes) {
+            var node = document.createElementNS(NS, tag);
+            Object.keys(attributes || {}).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'vfl-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'vfl-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('vfl-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('vfl-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.vfl-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function isoDay(offset) {
+            var base = state && state.today ? new Date(state.today + 'T12:00:00') : new Date();
+            base.setDate(base.getDate() + offset);
+            return base.getFullYear() + '-' + ('0' + (base.getMonth() + 1)).slice(-2) + '-' + ('0' + base.getDate()).slice(-2);
+        }
+
+        function load(value) {
+            if (typeof requestAction !== 'function') {
+                return;
+            }
+            busy = true;
+            render();
+            requestAction('Load', value);
+        }
+
+        function button(text, className, handler) {
+            var node = el('button', className, text);
+            node.type = 'button';
+            node.addEventListener('click', handler);
+            return node;
+        }
+
+        // Sankey-Diagramm: Spalten nach Ebene, Höhe aller Knoten im gleichen Maßstab, damit die Flüsse an beiden Enden gleich dick sind
+        function buildChart(data, container) {
+            var nodes = data.nodes;
+            var width = Math.max(240, container.clientWidth);
+            var height = Math.max(190, container.clientHeight);
+            var fontSize = parseFloat(getComputedStyle(container).fontSize) || 14;
+            var nodeWidth = Math.max(10, Math.round(fontSize * 0.9));
+            var gap = Math.max(5, Math.round(fontSize * 0.5));
+            var padY = 6;
+            var digits = data.live ? 0 : (data.total >= 1000 ? 0 : (data.total >= 100 ? 1 : 2));
+
+            var cols = [];
+            var map = {};
+            nodes.forEach(function (node) {
+                node.h = 0;
+                map[node.id] = node;
+                (cols[node.col] = cols[node.col] || []).push(node);
+            });
+
+            // Rechts bleibt Platz für die Beschriftung der letzten Spalte
+            var lastCol = cols.length - 1;
+            var longest = 0;
+            (cols[lastCol] || []).forEach(function (node) {
+                longest = Math.max(longest, node.name.length + 1);
+            });
+            var reserve = lastCol > 0 ? Math.min(width * 0.4, longest * fontSize * 0.52) : 0;
+            var step = lastCol > 0 ? (width - nodeWidth - reserve) / lastCol : 0;
+
+            var scale = Infinity;
+            cols.forEach(function (column) {
+                var sum = 0;
+                column.forEach(function (node) {
+                    sum += node.value;
+                });
+                if (sum > 0) {
+                    scale = Math.min(scale, (height - 2 * padY - gap * (column.length - 1)) / sum);
+                }
+            });
+            if (!isFinite(scale) || scale <= 0) {
+                scale = 1;
+            }
+
+            cols.forEach(function (column, index) {
+                var used = gap * (column.length - 1);
+                column.forEach(function (node) {
+                    node.h = Math.max(2, node.value * scale);
+                    used += node.h;
+                });
+                var y = padY + Math.max(0, (height - 2 * padY - used) / 2);
+                column.forEach(function (node) {
+                    node.x = Math.round(index * step);
+                    node.y = y;
+                    y += node.h + gap;
+                });
+            });
+
+            var canvas = svg('svg', {width: width, height: height, viewBox: '0 0 ' + width + ' ' + height});
+            var defs = svg('defs');
+            canvas.appendChild(defs);
+
+            var outOffset = {};
+            nodes.forEach(function (node) {
+                outOffset[node.id] = node.y;
+            });
+            var colorOf = function (node) {
+                return node.color || 'var(--accent-color)';
+            };
+            var share = function (value) {
+                return data.total > 0 ? fmt(value / data.total * 100, value / data.total * 100 < 10 ? 1 : 0) + ' % ' + state.texts.share : '';
+            };
+            var linesFor = function (node) {
+                var lines = [node.name, fmt(node.value, data.live ? 0 : (digits === 0 ? 1 : digits)) + ' ' + data.unit + ' (' + share(node.value) + ')'];
+                if (state.showCost) {
+                    lines.push(fmt(node.cost, data.live ? 3 : 2) + ' ' + (data.live ? data.costUnit : '€'));
+                }
+                if (state.clickOpen && node.objectId > 0 && typeof openObject === 'function') {
+                    lines.push(state.texts.openHint);
+                }
+                return lines;
+            };
+
+            data.links.forEach(function (link, index) {
+                var from = map[link.s];
+                var to = map[link.t];
+                if (!from || !to) {
+                    return;
+                }
+                var thick = Math.max(1, link.v * scale);
+                var x0 = from.x + nodeWidth;
+                var y0 = outOffset[link.s];
+                outOffset[link.s] += link.v * scale;
+                var x1 = to.x;
+                var y1 = to.y;
+                var mid = (x0 + x1) / 2;
+                var gradient = svg('linearGradient', {id: 'vfl-g' + index, x1: '0%', y1: '0%', x2: '100%', y2: '0%'});
+                var stopA = svg('stop', {offset: '0%'});
+                stopA.style.stopColor = colorOf(from);
+                var stopB = svg('stop', {offset: '100%'});
+                stopB.style.stopColor = colorOf(to);
+                gradient.appendChild(stopA);
+                gradient.appendChild(stopB);
+                defs.appendChild(gradient);
+                var path = svg('path', {
+                    d: 'M' + x0 + ' ' + y0 + ' C' + mid + ' ' + y0 + ' ' + mid + ' ' + y1 + ' ' + x1 + ' ' + y1 +
+                        ' L' + x1 + ' ' + (y1 + thick) + ' C' + mid + ' ' + (y1 + thick) + ' ' + mid + ' ' + (y0 + thick) + ' ' + x0 + ' ' + (y0 + thick) + ' Z',
+                    fill: 'url(#vfl-g' + index + ')',
+                    'fill-opacity': '0.45'
+                });
+                hint(path, function () {
+                    return linesFor(to);
+                });
+                canvas.appendChild(path);
+            });
+
+            nodes.forEach(function (node) {
+                var rect = svg('rect', {x: node.x, y: node.y, width: nodeWidth, height: node.h, rx: 3});
+                rect.style.fill = colorOf(node);
+                var clickable = state.clickOpen && node.objectId > 0 && typeof openObject === 'function';
+                hint(rect, function () {
+                    return linesFor(node);
+                }, clickable ? function () {
+                    openObject(node.objectId);
+                } : null);
+                canvas.appendChild(rect);
+
+                // Beschriftung rechts neben dem Knoten, sehr schmale Knoten haben nur den Hinweis
+                if (node.h >= fontSize * 0.9) {
+                    var room = (node.col === lastCol ? reserve : step) - nodeWidth - 10;
+                    var maxChars = Math.max(4, Math.floor(room / (fontSize * 0.52)));
+                    var name = node.name.length > maxChars ? node.name.slice(0, Math.max(1, maxChars - 1)) + '…' : node.name;
+                    var cy = node.y + node.h / 2;
+                    var two = node.h >= fontSize * 2.1;
+                    var label = svg('text', {x: node.x + nodeWidth + 5, y: two ? cy - fontSize * 0.1 : cy, dy: two ? '0' : '0.35em', 'font-size': fontSize});
+                    label.textContent = name;
+                    canvas.appendChild(label);
+                    if (two) {
+                        var sub = svg('text', {x: node.x + nodeWidth + 5, y: cy + fontSize * 1.05, 'font-size': fontSize * 0.8, 'class': 'vfl-sub'});
+                        var text = fmt(node.value, digits) + ' ' + data.unit;
+                        sub.textContent = text.length > maxChars + 4 ? fmt(node.value, digits) : text;
+                        canvas.appendChild(sub);
+                    }
+                }
+            });
+            return canvas;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            if (selected === null) {
+                selected = state.period;
+                customTo = isoDay(0);
+                customFrom = isoDay(-6);
+            }
+            root.textContent = '';
+
+            var chips = el('div', 'vfl-row');
+            [['live', 5], ['today', 0], ['week', 1], ['month', 2], ['year', 3], ['custom', 4]].forEach(function (entry) {
+                chips.appendChild(button(texts[entry[0]], 'vfl-chip' + (selected === entry[1] ? ' vfl-on' : ''), function () {
+                    selected = entry[1];
+                    if (entry[1] !== 4) {
+                        load(entry[1]);
+                    } else {
+                        render();
+                    }
+                }));
+            });
+            root.appendChild(chips);
+
+            if (selected === 4) {
+                var custom = el('div', 'vfl-row');
+                [['from', customFrom], ['to', customTo]].forEach(function (entry) {
+                    var field = el('label', 'vfl-field');
+                    field.appendChild(el('span', 'vfl-label', texts[entry[0]]));
+                    var input = el('input');
+                    input.type = 'date';
+                    input.max = state.today;
+                    input.value = entry[1];
+                    input.addEventListener('change', function () {
+                        if (entry[0] === 'from') {
+                            customFrom = input.value;
+                        } else {
+                            customTo = input.value;
+                        }
+                    });
+                    field.appendChild(input);
+                    custom.appendChild(field);
+                });
+                custom.appendChild(button(texts.show, 'vfl-btn vfl-primary', function () {
+                    load(JSON.stringify({from: customFrom, to: customTo}));
+                }));
+                root.appendChild(custom);
+            }
+            root.appendChild(el('div', 'vfl-message', busy ? '…' : state.message));
+
+            var data = state.data;
+            if (!data || !data.nodes || data.nodes.length === 0) {
+                root.appendChild(el('div', 'vfl-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var summary = el('div', 'vfl-summary');
+            summary.appendChild(el('span', 'vfl-big', fmt(data.total, data.live ? 0 : 2) + ' ' + data.unit));
+            if (state.showCost) {
+                summary.appendChild(el('span', 'vfl-big', fmt(data.cost, data.live ? 3 : 2) + ' ' + (data.live ? data.costUnit : '€')));
+            }
+            summary.appendChild(el('span', 'vfl-label', data.label + (data.live ? ' · ' + texts.liveNote : '')));
+            root.appendChild(summary);
+
+            var container = el('div', 'vfl-chart');
+            root.appendChild(container);
+            fit();
+            container.appendChild(buildChart(data, container));
+            drawnWidth = container.clientWidth;
+            drawnHeight = container.clientHeight;
+        }
+
+        // Solange die Live-Anzeige gewählt ist, meldet die Kachel dem Modul regelmäßig, dass sie noch offen ist
+        setInterval(function () {
+            if (selected === 5 && typeof requestAction === 'function') {
+                requestAction('Keep', '');
+            }
+        }, 60000);
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            busy = false;
+            render();
+        };
+
+        // Bei geänderter Größe wird das Diagramm neu gezeichnet
+        var resizeTimer = null;
+        function onResize() {
+            fit();
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                var chart = root.querySelector('.vfl-chart');
+                if (state && chart && (Math.abs(chart.clientWidth - drawnWidth) > 8 || Math.abs(chart.clientHeight - drawnHeight) > 8)) {
+                    render();
+                }
+            }, 150);
+        }
+
+        window.addEventListener('resize', onResize);
+        window.addEventListener('load', onResize);
+        if (window.MutationObserver) {
+            new MutationObserver(onResize).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(onResize, 200);
+        fit();
+    })();
+</script>

@@ -1,0 +1,19 @@
+{
+    "id": "{DC010F5D-F871-4F65-8541-97674021EA48}",
+    "name": "Arbeitszahl",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Jahresarbeitszahl",
+        "Wirkungsgrad"
+    ],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "AZL",
+    "url": "https://deinsmarthome.info"
+}

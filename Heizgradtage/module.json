@@ -1,0 +1,18 @@
+{
+    "id": "{E0CB7851-DA4B-417F-83AB-38E5E0BEC7DC}",
+    "name": "Heizgradtage",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Witterungsbereinigter Verbrauch"
+    ],
+    "parentRequirements": [
+        "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{0F05D1E9-D61A-4BB7-A354-95233AA38306}"
+    ],
+    "prefix": "HGT",
+    "url": "https://deinsmarthome.info"
+}

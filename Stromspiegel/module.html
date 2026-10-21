@@ -1,0 +1,461 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .ssp {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .ssp::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .ssp::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .ssp::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .ssp::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .ssp * {
+        box-sizing: border-box;
+    }
+
+    .ssp > * {
+        flex-shrink: 0;
+    }
+
+    .ssp-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+    }
+
+    .ssp-chip {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .ssp-chip:hover {
+        background: var(--soft);
+    }
+
+    .ssp-chip.ssp-on {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .ssp-hero {
+        display: flex;
+        align-items: center;
+        gap: 0.9em;
+    }
+
+    .ssp-badge {
+        flex: none;
+        width: 3.6em;
+        height: 3.6em;
+        border-radius: 0.9em;
+        display: grid;
+        place-items: center;
+        font-size: 1.6em;
+        font-weight: 800;
+        color: #fff;
+        background: var(--c);
+    }
+
+    .ssp-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .ssp-sub {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .ssp-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    /* Skala: sieben gleich breite Klassen, der Pfeil zeigt die Lage des Verbrauchs */
+    .ssp-scale {
+        position: relative;
+        padding-top: 0.9em;
+    }
+
+    .ssp-segments {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+    }
+
+    .ssp-seg {
+        height: 1.6em;
+        display: grid;
+        place-items: center;
+        font-size: 0.8em;
+        font-weight: 700;
+        color: #fff;
+        background: var(--c);
+    }
+
+    .ssp-seg:first-child {
+        border-radius: 0.5em 0 0 0.5em;
+    }
+
+    .ssp-seg:last-child {
+        border-radius: 0 0.5em 0.5em 0;
+    }
+
+    .ssp-seg.ssp-dim {
+        opacity: 0.45;
+    }
+
+    .ssp-marker {
+        position: absolute;
+        top: 0;
+        width: 0;
+        height: 0;
+        border-left: 0.45em solid transparent;
+        border-right: 0.45em solid transparent;
+        border-top: 0.7em solid var(--content-color);
+        transform: translateX(-50%);
+    }
+
+    .ssp-bounds {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        font-size: 0.7em;
+        color: var(--muted);
+        text-align: center;
+    }
+
+    .ssp-bounds > span.ssp-own {
+        color: var(--content-color);
+        font-weight: 700;
+    }
+
+    .ssp-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8em, 1fr));
+        gap: 0.5em;
+    }
+
+    .ssp-card {
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.45em 0.7em;
+        min-width: 0;
+    }
+
+    .ssp-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .ssp-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .ssp-text {
+        font-size: 0.85em;
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.5em 0.7em;
+    }
+
+    .ssp-source {
+        font-size: 0.7em;
+        color: var(--muted);
+    }
+
+    .ssp-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .ssp-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .ssp-tip-title {
+        font-weight: 700;
+    }
+
+    .ssp-hint:hover {
+        filter: brightness(1.2);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="ssp" id="ssp"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('ssp');
+        var state = null;
+        var COLORS = ['#22c55e', '#65d34a', '#eab308', '#f59e0b', '#f97316', '#ef4444', '#991b1b'];
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'ssp-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'ssp-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        function hint(node, lines) {
+            node.classList.add('ssp-hint');
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    showTip(lines, event);
+                });
+            });
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten bleibt der Hinweis bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.ssp-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function load(value) {
+            if (typeof requestAction === 'function') {
+                requestAction('Load', String(value));
+            }
+        }
+
+        // Auswahl: aktuell oder ein Jahr mit eigener Tabelle, mit dem Verbrauch dieses Kalenderjahres
+        function buildYears(data, texts) {
+            var chips = el('div', 'ssp-row');
+            var options = [['current', texts.current]].concat((data.years || []).map(function (year) {
+                return [String(year), String(year)];
+            }));
+            options.forEach(function (entry) {
+                var chip = el('button', 'ssp-chip' + (String(data.selected) === entry[0] ? ' ssp-on' : ''), entry[1]);
+                chip.type = 'button';
+                chip.addEventListener('click', function () {
+                    load(entry[0]);
+                });
+                chips.appendChild(chip);
+            });
+            return chips;
+        }
+
+        function card(label, value, note) {
+            var box = el('div', 'ssp-card');
+            box.appendChild(el('div', 'ssp-label', label));
+            box.appendChild(el('div', 'ssp-value', value));
+            if (note) {
+                box.appendChild(el('div', 'ssp-note', note));
+            }
+            return box;
+        }
+
+        function boundText(data, index, texts) {
+            if (index < 6) {
+                return texts.upTo + ' ' + fmt(data.bounds[index], 0);
+            }
+            return texts.over + ' ' + fmt(data.bounds[5], 0);
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            var data = state.data;
+            root.textContent = '';
+            if (!data) {
+                root.appendChild(el('div', 'ssp-empty', texts.empty));
+                fit();
+                return;
+            }
+            if (data.error && !data.selected) {
+                root.appendChild(el('div', 'ssp-empty', data.error.indexOf('Bewohner') >= 0 ? texts.needResidents : (data.error.indexOf('Liste') >= 0 ? texts.noTables : texts.needEnergy)));
+                fit();
+                return;
+            }
+            if (data.years && data.years.length > 0) {
+                root.appendChild(buildYears(data, texts));
+            }
+            if (data.error) {
+                root.appendChild(el('div', 'ssp-empty', data.error === 'tables' ? texts.noTables : texts.noRow + (data.tableYear ? ' ' + data.tableYear : '')));
+                fit();
+                return;
+            }
+
+            var color = COLORS[data.class];
+            var hero = el('div', 'ssp-hero');
+            var badge = el('div', 'ssp-badge', data.letter);
+            badge.style.setProperty('--c', color);
+            hero.appendChild(badge);
+            var text = el('div');
+            text.appendChild(el('div', 'ssp-title', texts.class + ' ' + data.letter + ' – ' + texts.meaning[data.class]));
+            text.appendChild(el('div', 'ssp-sub', fmt(data.yearly, 0) + ' kWh ' + texts.perYear + ' · ' + fmt(data.perPerson, 0) + ' kWh ' + texts.perPerson));
+            var home = data.residents + ' ' + (data.residents === 1 ? texts.person : texts.persons) + ' · ' + (data.building === 1 ? texts.house : texts.flat) +
+                ' · ' + (data.hotWater ? texts.waterWith : texts.waterWithout);
+            text.appendChild(el('div', 'ssp-sub', home));
+            hero.appendChild(text);
+            root.appendChild(hero);
+
+            var scale = el('div', 'ssp-scale');
+            var marker = el('div', 'ssp-marker');
+            marker.style.left = (data.position * 100) + '%';
+            scale.appendChild(marker);
+            var segments = el('div', 'ssp-segments');
+            for (var index = 0; index < 7; index++) {
+                (function (i) {
+                    var segment = el('div', 'ssp-seg' + (i === data.class ? '' : ' ssp-dim'), String.fromCharCode(65 + i));
+                    segment.style.setProperty('--c', COLORS[i]);
+                    hint(segment, [texts.class + ' ' + String.fromCharCode(65 + i) + ' – ' + texts.meaning[i], boundText(data, i, texts) + ' kWh']);
+                    segments.appendChild(segment);
+                })(index);
+            }
+            scale.appendChild(segments);
+            root.appendChild(scale);
+
+            var bounds = el('div', 'ssp-bounds');
+            for (var b = 0; b < 7; b++) {
+                bounds.appendChild(el('span', b === data.class ? 'ssp-own' : '', boundText(data, b, texts)));
+            }
+            root.appendChild(bounds);
+
+            root.appendChild(el('div', 'ssp-text', texts.meaningText[data.class]));
+
+            var cards = el('div', 'ssp-cards');
+            if (data.class > 0) {
+                cards.appendChild(card(texts.toNext, fmt(data.toNext, 0) + ' kWh', texts.saving + ' ' + fmt(data.costToNext, 0) + ' € ' + texts.perYear));
+                if (data.class > 1) {
+                    cards.appendChild(card(texts.toA, fmt(data.toA, 0) + ' kWh', texts.saving + ' ' + fmt(data.costToA, 0) + ' € ' + texts.perYear));
+                }
+            }
+            cards.appendChild(card(texts.cost, fmt(data.cost, 0) + ' €', fmt(data.price, 3) + ' €/kWh'));
+            root.appendChild(cards);
+
+            var basis = data.basisLabel === '' ? texts.rolling : data.basisLabel + (data.annualized ? ' · ' + texts.annualized : '');
+            var notes = [basis];
+            if (data.excluded > 0) {
+                notes.push(fmt(data.excluded, 0) + ' kWh ' + texts.excluded);
+            }
+            root.appendChild(el('div', 'ssp-source', notes.join(' · ') + ' · ' + texts.source + ' ' + data.tableYear));
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

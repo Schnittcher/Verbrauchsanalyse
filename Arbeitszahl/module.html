@@ -1,0 +1,419 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .azl {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --up: #2fb344;
+        --down: #e5484d;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent
+           in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .azl::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .azl::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .azl::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .azl::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .azl * {
+        box-sizing: border-box;
+    }
+
+    .azl > *:not(.azl-chart) {
+        flex-shrink: 0;
+    }
+
+    .azl-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .azl-hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.8em;
+        flex-wrap: wrap;
+    }
+
+    .azl-number {
+        font-size: 3em;
+        font-weight: 700;
+        line-height: 1.05;
+    }
+
+    .azl-number small {
+        font-size: 0.4em;
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 0.3em;
+    }
+
+    .azl-side {
+        text-align: right;
+        font-size: 0.85em;
+    }
+
+    .azl-side .azl-up {
+        color: var(--up);
+        font-weight: 700;
+    }
+
+    .azl-side .azl-down {
+        color: var(--down);
+        font-weight: 700;
+    }
+
+    /* Balken je Monat, die gestrichelte Linie ist der Wert der letzten zwölf Monate */
+    .azl-chart {
+        flex: 1;
+        min-height: 3em;
+        padding: 0.4em 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .azl-bars {
+        position: relative;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        gap: 0.25em;
+    }
+
+    .azl-bar {
+        flex: 1;
+        min-width: 2px;
+        border-radius: 0.25em 0.25em 0 0;
+        background: color-mix(in srgb, var(--accent-color) 45%, transparent);
+    }
+
+    .azl-bar.azl-latest {
+        background: var(--accent-color);
+    }
+
+    .azl-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 2px dashed var(--content-color);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .azl-axis {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5em;
+        font-size: 0.7em;
+        color: var(--muted);
+    }
+
+    /* Karten brechen bei wenig Breite in weitere Zeilen um, damit nichts abgeschnitten wird */
+    .azl-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8.5em, 1fr));
+        gap: 0.6em;
+    }
+
+    .azl-card {
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.6em 0.8em;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .azl-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .azl-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    /* Die Kachel zeigt so viel, wie in die Höhe passt. Die Stufe misst fit(): 2 alles, 1 ohne Karten, 0 nur die Kennzahl */
+    .azl[data-level="1"] .azl-cards,
+    .azl[data-level="0"] .azl-cards,
+    .azl[data-level="0"] .azl-chart,
+    .azl[data-level="0"] .azl-axis {
+        display: none;
+    }
+
+    .azl-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .azl-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .azl-tip-title {
+        font-weight: 700;
+    }
+
+    .azl-hint {
+        cursor: default;
+    }
+
+    .azl-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    .azl-action {
+        cursor: pointer;
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="azl" id="azl"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('azl');
+        var state = null;
+
+        // Hinweise: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'azl-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'azl-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('azl-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('azl-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.azl-hint')) {
+                hideTip();
+            }
+        });
+
+        function fmt(value, digits) {
+            return value.toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+            for (var level = 2; level >= 0; level--) {
+                root.setAttribute('data-level', String(level));
+                if (root.scrollHeight <= root.clientHeight + 1) {
+                    break;
+                }
+            }
+        }
+
+        function ratioText(value) {
+            return state.percent ? fmt(value, 1) + ' %' : fmt(value, 2);
+        }
+
+        function monthLabel(key) {
+            return new Date(key + '-15T12:00:00').toLocaleDateString(undefined, {month: 'long', year: 'numeric'});
+        }
+
+        function card(label, period) {
+            var box = el('div', 'azl-card');
+            box.appendChild(el('div', 'azl-label', label));
+            box.appendChild(el('div', 'azl-value', ratioText(period.ratio)));
+            box.appendChild(el('div', 'azl-note', state.texts.input + ' ' + fmt(period.input, 0) + ' kWh · ' + state.texts.output + ' ' + fmt(period.output, 0) + ' kWh'));
+            return box;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            root.textContent = '';
+            var last12 = state.periods ? state.periods.Last12 : null;
+            if (!last12 || last12.input <= 0) {
+                root.appendChild(el('div', 'azl-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var openable = state.clickOpen === true && state.sourceId > 0 && typeof openObject === 'function';
+            var open = openable ? function () { openObject(state.sourceId); } : null;
+
+            var hero = el('div', 'azl-hero');
+            var main = el('div');
+            main.appendChild(el('div', 'azl-label', texts.title + ' · ' + texts.last12));
+            main.appendChild(el('div', 'azl-number', ratioText(last12.ratio)));
+            hero.appendChild(main);
+
+            // Dieses Jahr gegen das Vorjahr: mehr ist besser
+            var year = state.periods.Year;
+            var previous = state.periods.LastYearYear;
+            var side = el('div', 'azl-side');
+            side.appendChild(el('div', 'azl-label', texts.year));
+            side.appendChild(document.createTextNode(ratioText(year.ratio) + ' '));
+            if (previous.ratio > 0 && year.input > 0) {
+                var change = (year.ratio - previous.ratio) / previous.ratio * 100;
+                side.appendChild(el('span', change >= 0 ? 'azl-up' : 'azl-down', (change >= 0 ? '▲ +' : '▼ ') + fmt(change, 1) + ' %'));
+            }
+            hero.appendChild(side);
+            root.appendChild(hero);
+
+            var chart = el('div', 'azl-chart');
+            var bars = el('div', 'azl-bars');
+            var max = Math.max.apply(null, state.months.map(function (m) { return m.ratio; }).concat([last12.ratio, 0.01]));
+            state.months.forEach(function (month, index) {
+                var bar = el('div', 'azl-bar' + (index === state.months.length - 1 ? ' azl-latest' : ''));
+                bar.style.height = (month.ratio / max * 100) + '%';
+                hint(bar, function () {
+                    var lines = [monthLabel(month.month), texts.title + ': ' + ratioText(month.ratio),
+                        texts.input + ': ' + fmt(month.input, 0) + ' kWh', texts.output + ': ' + fmt(month.output, 0) + ' kWh'];
+                    return open ? lines.concat([texts.openHint]) : lines;
+                }, open);
+                bars.appendChild(bar);
+            });
+            var line = el('div', 'azl-line');
+            line.style.bottom = (last12.ratio / max * 100) + '%';
+            bars.appendChild(line);
+            chart.appendChild(bars);
+            root.appendChild(chart);
+
+            var axis = el('div', 'azl-axis');
+            axis.appendChild(el('span', '', state.months[0].month.slice(2).replace('-', '/')));
+            axis.appendChild(el('span', '', texts.perMonth));
+            axis.appendChild(el('span', '', state.months[state.months.length - 1].month.slice(2).replace('-', '/')));
+            root.appendChild(axis);
+
+            var cards = el('div', 'azl-cards');
+            cards.appendChild(card(texts.year, year));
+            cards.appendChild(card(texts.lastYear, previous));
+            cards.appendChild(card(texts.month, state.periods.Month));
+            root.appendChild(cards);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        // Die Visualisierung setzt die Ränder am body eventuell erst nach dem Laden. Deshalb wird die Höhe nach dem Laden
+        // und bei jeder Änderung von Rand oder Fenster neu berechnet, sonst ist die Kachel zu hoch und die Seite scrollt.
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

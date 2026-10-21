@@ -1,0 +1,469 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .lgg {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: 0.7em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .lgg::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .lgg::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .lgg::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .lgg::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .lgg * {
+        box-sizing: border-box;
+    }
+
+    .lgg > * {
+        flex-shrink: 0;
+    }
+
+    .lgg-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        align-items: center;
+    }
+
+    .lgg-chip {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .lgg-chip:hover {
+        background: var(--soft);
+    }
+
+    .lgg-chip.lgg-on {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .lgg-select {
+        font: inherit;
+        font-size: 0.85em;
+        max-width: 100%;
+        color: var(--content-color);
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 0.6em;
+        padding: 0.3em 0.6em;
+    }
+
+    /* Die Einträge der Auswahlliste nehmen die Farben der Kachel, damit sie im dunklen Stil dunkel bleiben (Schrift und Hintergrund passen zusammen) */
+    .lgg-select option {
+        background: var(--card-color, #ffffff);
+        color: var(--content-color, #1f2937);
+    }
+
+    .lgg-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .lgg-title {
+        font-weight: 700;
+    }
+
+    .lgg-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr));
+        gap: 0.5em;
+    }
+
+    .lgg-card {
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.45em 0.7em;
+        min-width: 0;
+    }
+
+    .lgg-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .lgg-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    /* Heatmap: eine Spalte für den Wochentag, dann 24 Stunden */
+    .lgg-grid {
+        display: grid;
+        grid-template-columns: 2.6em repeat(24, minmax(0, 1fr));
+        gap: 2px;
+        align-items: stretch;
+    }
+
+    .lgg-day,
+    .lgg-hour {
+        font-size: 0.7em;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+    }
+
+    .lgg-hour {
+        justify-content: center;
+    }
+
+    .lgg-day.lgg-now {
+        color: var(--content-color);
+        font-weight: 700;
+    }
+
+    .lgg-cell {
+        min-height: 1.5em;
+        border-radius: 3px;
+        background: var(--soft);
+        position: relative;
+    }
+
+    .lgg-cell.lgg-fill {
+        background: color-mix(in srgb, var(--accent-color) var(--p, 0%), transparent);
+    }
+
+    .lgg-cell.lgg-today {
+        outline: 1px solid color-mix(in srgb, var(--content-color) 55%, transparent);
+        outline-offset: -1px;
+    }
+
+    .lgg-gap {
+        grid-column: 1 / -1;
+        height: 0.3em;
+    }
+
+    .lgg-legend {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .lgg-scale {
+        flex: 1;
+        max-width: 10em;
+        height: 0.5em;
+        border-radius: 0.3em;
+        background: linear-gradient(to right, color-mix(in srgb, var(--accent-color) 8%, transparent), var(--accent-color));
+    }
+
+    .lgg-message,
+    .lgg-empty {
+        font-size: 0.85em;
+        color: var(--muted);
+    }
+
+    .lgg-empty {
+        padding: 2em 1em;
+        text-align: center;
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .lgg-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .lgg-tip-title {
+        font-weight: 700;
+    }
+
+    .lgg-hint:hover {
+        filter: brightness(1.25);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="lgg" id="lgg"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('lgg');
+        var state = null;
+        var scope = null;
+        var weeks = null;
+        var busy = false;
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'lgg-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'lgg-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        function hint(node, lines) {
+            node.classList.add('lgg-hint');
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    showTip(lines, event);
+                });
+            });
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten bleibt der Hinweis bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.lgg-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function load() {
+            if (typeof requestAction !== 'function') {
+                return;
+            }
+            busy = true;
+            render();
+            requestAction('Load', JSON.stringify({scope: scope, weeks: weeks}));
+        }
+
+        // Wochentagsnamen in der Sprache der Visualisierung, 0 = Montag
+        function dayName(index) {
+            return new Date(2024, 0, 1 + index).toLocaleDateString(undefined, {weekday: 'short'});
+        }
+
+        function clock(hour) {
+            return ('0' + hour).slice(-2) + ':00';
+        }
+
+        function card(label, value, note) {
+            var box = el('div', 'lgg-card');
+            box.appendChild(el('div', 'lgg-label', label));
+            box.appendChild(el('div', 'lgg-value', value));
+            if (note) {
+                box.appendChild(el('div', 'lgg-note', note));
+            }
+            return box;
+        }
+
+        function buildGrid(data, texts) {
+            var grid = el('div', 'lgg-grid');
+            var max = data.max > 0 ? data.max : 1;
+            grid.appendChild(el('div'));
+            for (var hour = 0; hour < 24; hour++) {
+                grid.appendChild(el('div', 'lgg-hour', hour % 3 === 0 ? String(hour) : ''));
+            }
+
+            function cell(value, title, extra) {
+                var node = el('div', 'lgg-cell' + (extra || ''));
+                if (value !== null && value !== undefined) {
+                    node.classList.add('lgg-fill');
+                    node.style.setProperty('--p', Math.round(8 + 92 * Math.min(1, value / max)) + '%');
+                    hint(node, [title, fmt(value, 0) + ' W']);
+                } else {
+                    hint(node, [title, texts.noData]);
+                }
+                return node;
+            }
+
+            // Heute: bisherige Stunden des heutigen Tages, darunter eine Lücke
+            grid.appendChild(el('div', 'lgg-day lgg-now', texts.today));
+            for (var h = 0; h < 24; h++) {
+                var typical = data.cells[data.todayDay][h];
+                var now = data.today[h];
+                var node = cell(now, texts.today + ' ' + clock(h), ' lgg-today');
+                if (now !== null && typical !== null) {
+                    hint(node, [texts.today + ' ' + clock(h), fmt(now, 0) + ' W', texts.typical + ': ' + fmt(typical, 0) + ' W']);
+                }
+                grid.appendChild(node);
+            }
+            grid.appendChild(el('div', 'lgg-gap'));
+
+            for (var day = 0; day < 7; day++) {
+                grid.appendChild(el('div', 'lgg-day' + (day === data.todayDay ? ' lgg-now' : ''), dayName(day)));
+                for (var hh = 0; hh < 24; hh++) {
+                    grid.appendChild(cell(data.cells[day][hh], dayName(day) + ' ' + clock(hh) + '–' + clock((hh + 1) % 24)));
+                }
+            }
+            return grid;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            if (scope === null) {
+                scope = state.scope;
+                weeks = state.weeks;
+            }
+            root.textContent = '';
+            var data = state.data;
+
+            var controls = el('div', 'lgg-row');
+            if (data && data.scopes) {
+                var select = el('select', 'lgg-select');
+                select.title = texts.source;
+                data.scopes.forEach(function (entry) {
+                    var option = el('option', '', new Array(entry.level + 1).join(' ') + entry.name);
+                    option.value = entry.id;
+                    option.selected = entry.id === scope;
+                    select.appendChild(option);
+                });
+                select.addEventListener('change', function () {
+                    scope = select.value;
+                    load();
+                });
+                controls.appendChild(select);
+            }
+            state.weekOptions.forEach(function (value) {
+                var chip = el('button', 'lgg-chip' + (value === weeks ? ' lgg-on' : ''), value + ' ' + texts.weeks);
+                chip.type = 'button';
+                chip.addEventListener('click', function () {
+                    weeks = value;
+                    load();
+                });
+                controls.appendChild(chip);
+            });
+            root.appendChild(controls);
+            root.appendChild(el('div', 'lgg-message', busy ? '…' : state.message));
+
+            if (!data || data.sources === 0 || data.max <= 0) {
+                root.appendChild(el('div', 'lgg-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var cards = el('div', 'lgg-cards');
+            cards.appendChild(card(texts.average, fmt(data.average, 0) + ' W'));
+            if (data.base !== null) {
+                cards.appendChild(card(texts.base, fmt(data.base, 0) + ' W'));
+            }
+            if (data.peak) {
+                cards.appendChild(card(texts.peak, dayName(data.peak.day) + ' ' + clock(data.peak.hour), fmt(data.peak.value, 0) + ' W'));
+            }
+            var total = data.dayKWh.reduce(function (sum, value) {
+                return sum + value;
+            }, 0) / 7;
+            cards.appendChild(card(texts.dayTotal, fmt(total, 1) + ' kWh'));
+            root.appendChild(cards);
+
+            root.appendChild(buildGrid(data, texts));
+
+            var legend = el('div', 'lgg-legend');
+            legend.appendChild(el('span', '', '0 W'));
+            legend.appendChild(el('span', 'lgg-scale'));
+            legend.appendChild(el('span', '', fmt(data.max, 0) + ' W'));
+            root.appendChild(legend);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            busy = false;
+            render();
+        };
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

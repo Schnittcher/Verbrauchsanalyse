@@ -1,0 +1,399 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .spz {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        --good: #2fb344;
+        --warn: #f59f00;
+        --bad: #e5484d;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent
+           in den Farben der Visualisierung, Abstand zum Inhalt (standards/TILE_VISUALIZATION.md) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .spz::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .spz::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .spz::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .spz::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .spz * {
+        box-sizing: border-box;
+    }
+
+    .spz > * {
+        flex-shrink: 0;
+    }
+
+    .spz-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    .spz-hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.8em;
+        flex-wrap: wrap;
+    }
+
+    .spz-number {
+        font-size: 3em;
+        font-weight: 700;
+        line-height: 1.05;
+    }
+
+    .spz-good {
+        color: var(--good);
+    }
+
+    .spz-warn {
+        color: var(--warn);
+    }
+
+    .spz-bad {
+        color: var(--bad);
+    }
+
+    .spz-goal {
+        text-align: right;
+        font-size: 0.85em;
+    }
+
+    .spz-state {
+        font-weight: 700;
+    }
+
+    /* Fortschritt zum Ziel: Der Balken ist voll, wenn das Ziel erreicht ist */
+    .spz-bar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3em;
+    }
+
+    .spz-track {
+        position: relative;
+        height: 0.7em;
+        border-radius: 0.4em;
+        background: var(--soft);
+        overflow: hidden;
+    }
+
+    .spz-fill {
+        height: 100%;
+        border-radius: 0.4em;
+        background: var(--warn);
+    }
+
+    .spz-ontrack .spz-fill {
+        background: var(--good);
+    }
+
+    .spz-barline {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    /* Karten brechen bei wenig Breite in weitere Zeilen um, damit nichts abgeschnitten wird */
+    /* Übriger Platz verteilt sich auf die Kartenzeilen, damit unten keine Lücke bleibt */
+    .spz-cards {
+        flex: 1 1 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8.5em, 1fr));
+        grid-auto-rows: minmax(min-content, 1fr);
+        gap: 0.6em;
+    }
+
+    .spz-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: var(--soft);
+        border-radius: 1em;
+        padding: 0.6em 0.8em;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .spz-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .spz-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    /* Die Kachel zeigt so viel, wie in die Höhe passt. Die Stufe misst fit(): 2 alles, 1 mit Zahlen, 0 nur Ziel und Fortschritt */
+    .spz[data-level="0"] .spz-cards,
+    .spz[data-level="1"] .spz-more {
+        display: none;
+    }
+
+    .spz-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .spz-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .spz-tip-title {
+        font-weight: 700;
+    }
+
+    .spz-hint {
+        cursor: default;
+    }
+
+    .spz-action {
+        cursor: pointer;
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="spz" id="spz"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('spz');
+        var state = null;
+
+        // Hinweise: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+        var tipOwner = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'spz-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'spz-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        // Mit einer Aktion öffnet ein Klick die Aktion. Auf Touch-Geräten zeigt das erste Tippen nur den Hinweis, das zweite öffnet.
+        function hint(node, linesFn, activate) {
+            node.classList.add('spz-hint');
+            var pointerType = 'mouse';
+            var wasShown = false;
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (name === 'pointerdown') {
+                        pointerType = event.pointerType;
+                        wasShown = tipOwner === node && tip !== null && tip.style.display === 'block';
+                    }
+                    tipOwner = node;
+                    showTip(linesFn(), event);
+                });
+            });
+            if (activate) {
+                node.classList.add('spz-action');
+                node.addEventListener('click', function () {
+                    if (pointerType === 'touch' && !wasShown) {
+                        return;
+                    }
+                    activate();
+                });
+            }
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten endet der Zeiger mit dem Loslassen, der Hinweis bleibt dort bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.spz-hint')) {
+                hideTip();
+            }
+        });
+
+        function fmt(value, digits) {
+            return value.toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function signed(value, digits) {
+            return (value > 0 ? '+' : (value < 0 ? '−' : '')) + fmt(Math.abs(value), digits);
+        }
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+            for (var level = 2; level >= 0; level--) {
+                root.setAttribute('data-level', String(level));
+                if (root.scrollHeight <= root.clientHeight + 1) {
+                    break;
+                }
+            }
+        }
+
+        function card(label, value, note, more) {
+            var box = el('div', 'spz-card' + (more ? ' spz-more' : ''));
+            box.appendChild(el('div', 'spz-label', label));
+            box.appendChild(el('div', 'spz-value', value));
+            if (note) {
+                box.appendChild(el('div', 'spz-note', note));
+            }
+            return box;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            root.textContent = '';
+
+            if (state.actual === undefined) {
+                root.appendChild(el('div', 'spz-empty', texts.empty));
+                fit();
+                return;
+            }
+
+            var openable = state.clickOpen === true && state.sourceId > 0 && typeof openObject === 'function';
+            var open = openable ? function () { openObject(state.sourceId); } : null;
+
+            root.appendChild(el('div', 'spz-label', (state.period === 'month' ? texts.monthTitle : texts.yearTitle) + (state.adjusted ? ' · ' + texts.adjusted : '')));
+
+            // Kopf: Veränderung zum Vorjahr, grün bei erreichtem Ziel, orange bei Einsparung unter dem Ziel, rot bei Mehrverbrauch
+            var tone = !state.hasReference ? '' : (state.onTrack ? 'spz-good' : (state.change < 0 ? 'spz-warn' : 'spz-bad'));
+            var hero = el('div', 'spz-hero');
+            var main = el('div');
+            main.appendChild(el('div', 'spz-number ' + tone, state.hasReference ? signed(state.change, 1) + ' %' : '–'));
+            main.appendChild(el('div', 'spz-label', state.hasReference ? texts.toLastYear : texts.noRef));
+            hero.appendChild(main);
+            var goal = el('div', 'spz-goal');
+            goal.appendChild(el('div', 'spz-label', texts.goal));
+            goal.appendChild(document.createTextNode('−' + fmt(state.target, 0) + ' %'));
+            if (state.hasReference) {
+                goal.appendChild(el('div', 'spz-state ' + tone, state.onTrack ? texts.onTrack : texts.behind));
+            }
+            hero.appendChild(goal);
+            root.appendChild(hero);
+
+            // Fortschritt zum Ziel
+            if (state.hasReference) {
+                var bar = el('div', 'spz-bar' + (state.onTrack ? ' spz-ontrack' : ''));
+                var track = el('div', 'spz-track');
+                var fill = el('div', 'spz-fill');
+                fill.style.width = Math.max(0, Math.min(100, state.progress)) + '%';
+                track.appendChild(fill);
+                bar.appendChild(track);
+                var line = el('div', 'spz-barline');
+                line.appendChild(el('span', '', fmt(Math.max(0, state.progress), 0) + ' % ' + texts.reached));
+                line.appendChild(el('span', '', texts.goal + ' 100 %'));
+                bar.appendChild(line);
+                hint(bar, function () {
+                    var lines = [fmt(Math.max(0, state.progress), 0) + ' % ' + texts.reached, signed(state.change, 1) + ' % ' + texts.toLastYear + ', ' + texts.goal + ' −' + fmt(state.target, 0) + ' %'];
+                    return open ? lines.concat([texts.openHint]) : lines;
+                }, open);
+                root.appendChild(bar);
+            }
+
+            var cards = el('div', 'spz-cards');
+            cards.appendChild(card(texts.so, fmt(state.actual, 1) + ' ' + state.unit, null, false));
+            cards.appendChild(card(texts.last, fmt(state.reference, 1) + ' ' + state.unit, null, false));
+            cards.appendChild(card(texts.projected, fmt(state.projected, 0) + ' ' + state.unit, texts.targetValue + ': ' + fmt(state.targetValue, 0) + ' ' + state.unit, true));
+            cards.appendChild(card(texts.savings, signed(state.savingsCost, 2) + ' €', signed(state.savings, 0) + ' ' + state.unit, true));
+            root.appendChild(cards);
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        // Die Visualisierung setzt die Ränder am body eventuell erst nach dem Laden. Deshalb wird die Höhe nach dem Laden
+        // und bei jeder Änderung von Rand oder Fenster neu berechnet, sonst ist die Kachel zu hoch und die Seite scrollt.
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>

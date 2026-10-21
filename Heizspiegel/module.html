@@ -1,0 +1,474 @@
+<style>
+    /* Schrift, Schriftgröße, Ränder und Farben kommen von der Visualisierung, nichts davon wird hier überschrieben */
+    .hsp {
+        --line: color-mix(in srgb, var(--content-color) 14%, transparent);
+        --soft: color-mix(in srgb, var(--content-color) 7%, transparent);
+        --muted: color-mix(in srgb, var(--content-color) 60%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: 0.8em;
+        box-sizing: border-box;
+        /* Reicht der Platz nicht, scrollt die Kachel, statt unten abzuschneiden. Scrollbalken schmal und dezent */
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding-right: 0.7em;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--content-color) 30%, transparent) transparent;
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--content-color);
+    }
+
+    .hsp::-webkit-scrollbar {
+        width: 0.35em;
+    }
+
+    .hsp::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .hsp::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--content-color) 30%, transparent);
+        border-radius: 0.2em;
+    }
+
+    .hsp::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+    }
+
+    .hsp * {
+        box-sizing: border-box;
+    }
+
+    .hsp > * {
+        flex-shrink: 0;
+    }
+
+    .hsp-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+    }
+
+    .hsp-chip {
+        font: inherit;
+        font-size: 0.85em;
+        color: var(--content-color);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 2em;
+        padding: 0.3em 0.9em;
+        cursor: pointer;
+    }
+
+    .hsp-chip:hover {
+        background: var(--soft);
+    }
+
+    .hsp-chip.hsp-on {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .hsp-hero {
+        display: flex;
+        align-items: center;
+        gap: 0.9em;
+    }
+
+    .hsp-badge {
+        flex: none;
+        min-width: 4.4em;
+        height: 3.6em;
+        padding: 0 0.6em;
+        border-radius: 0.9em;
+        display: grid;
+        place-items: center;
+        font-size: 1.2em;
+        font-weight: 800;
+        color: #fff;
+        background: var(--c);
+    }
+
+    .hsp-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .hsp-sub,
+    .hsp-label {
+        font-size: 0.8em;
+        color: var(--muted);
+    }
+
+    /* Skala: vier gleich breite Kategorien, der Pfeil zeigt die Lage des Verbrauchs */
+    .hsp-scale {
+        position: relative;
+        padding-top: 0.9em;
+    }
+
+    .hsp-segments {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+    }
+
+    .hsp-seg {
+        height: 1.6em;
+        display: grid;
+        place-items: center;
+        font-size: 0.75em;
+        font-weight: 700;
+        color: #fff;
+        background: var(--c);
+    }
+
+    .hsp-seg:first-child {
+        border-radius: 0.5em 0 0 0.5em;
+    }
+
+    .hsp-seg:last-child {
+        border-radius: 0 0.5em 0.5em 0;
+    }
+
+    .hsp-seg.hsp-dim {
+        opacity: 0.45;
+    }
+
+    .hsp-marker {
+        position: absolute;
+        top: 0;
+        width: 0;
+        height: 0;
+        border-left: 0.45em solid transparent;
+        border-right: 0.45em solid transparent;
+        border-top: 0.7em solid var(--content-color);
+        transform: translateX(-50%);
+    }
+
+    .hsp-bounds {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+        font-size: 0.7em;
+        color: var(--muted);
+        text-align: center;
+    }
+
+    .hsp-bounds > span.hsp-own {
+        color: var(--content-color);
+        font-weight: 700;
+    }
+
+    .hsp-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8em, 1fr));
+        gap: 0.5em;
+    }
+
+    .hsp-card {
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.45em 0.7em;
+        min-width: 0;
+    }
+
+    .hsp-value {
+        font-size: 1.2em;
+        font-weight: 700;
+    }
+
+    .hsp-note {
+        font-size: 0.75em;
+        color: var(--muted);
+    }
+
+    .hsp-text {
+        font-size: 0.85em;
+        background: var(--soft);
+        border-radius: 0.7em;
+        padding: 0.5em 0.7em;
+    }
+
+    .hsp-source {
+        font-size: 0.7em;
+        color: var(--muted);
+    }
+
+    .hsp-empty {
+        padding: 2em 1em;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    /* Hinweise zu den Diagrammen hängen am body, damit weder Scrollbereich noch Kachelrand sie abschneiden */
+    .hsp-tip {
+        position: fixed;
+        display: none;
+        z-index: 30;
+        pointer-events: none;
+        max-width: 18em;
+        padding: 0.4em 0.7em;
+        border-radius: 0.6em;
+        font-family: inherit;
+        font-size: 0.8em;
+        line-height: 1.4;
+        color: var(--content-color);
+        background: var(--card-color, #323338);
+        border: 1px solid color-mix(in srgb, var(--content-color) 20%, transparent);
+        box-shadow: 0 0.3em 1em rgba(0, 0, 0, 0.35);
+    }
+
+    .hsp-tip-title {
+        font-weight: 700;
+    }
+
+    .hsp-hint:hover {
+        filter: brightness(1.2);
+    }
+
+    /* Die Kachel scrollt nur in ihrem eigenen Bereich, nie im Dokument (sonst erscheint bei krummen Pixelwerten ein zweiter Rollbalken) */
+    html, body { overflow: hidden; }
+</style>
+
+<div class="hsp" id="hsp"></div>
+
+<script>
+    (function () {
+        var root = document.getElementById('hsp');
+        var state = null;
+        var COLORS = ['#22c55e', '#eab308', '#f97316', '#ef4444'];
+
+        // Hinweise zu den Diagrammen: erscheinen sofort beim Überfahren und beim Antippen, auch auf Touch-Geräten
+        var tip = null;
+        var tipTimer = null;
+
+        function el(tag, className, text) {
+            var node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined && text !== null) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function fmt(value, digits) {
+            return Number(value).toLocaleString(undefined, {minimumFractionDigits: digits, maximumFractionDigits: digits});
+        }
+
+        function showTip(lines, event) {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.className = 'hsp-tip';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = '';
+            lines.forEach(function (line, index) {
+                tip.appendChild(el('div', index === 0 ? 'hsp-tip-title' : '', line));
+            });
+            tip.style.display = 'block';
+            var x = Math.max(4, Math.min(event.clientX - tip.offsetWidth / 2, window.innerWidth - tip.offsetWidth - 4));
+            var y = event.clientY - tip.offsetHeight - 14;
+            tip.style.left = x + 'px';
+            tip.style.top = (y < 4 ? event.clientY + 18 : y) + 'px';
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(hideTip, 4000);
+        }
+
+        function hideTip() {
+            if (tip) {
+                tip.style.display = 'none';
+            }
+        }
+
+        function hint(node, lines) {
+            node.classList.add('hsp-hint');
+            ['pointerenter', 'pointermove', 'pointerdown'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    showTip(lines, event);
+                });
+            });
+            node.addEventListener('pointerleave', function (event) {
+                // Auf Touch-Geräten bleibt der Hinweis bis zum nächsten Tippen
+                if (event.pointerType !== 'touch') {
+                    hideTip();
+                }
+            });
+        }
+
+        document.addEventListener('pointerdown', function (event) {
+            if (!event.target.closest || !event.target.closest('.hsp-hint')) {
+                hideTip();
+            }
+        });
+
+        // Die Kachel füllt den Platz innerhalb der Ränder, die die Visualisierung am body setzt
+        function fit() {
+            var style = getComputedStyle(document.body);
+            var space = parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+            root.style.height = Math.max(0, window.innerHeight - space) + 'px';
+        }
+
+        function load(value) {
+            if (typeof requestAction === 'function') {
+                requestAction('Load', String(value));
+            }
+        }
+
+        // Auswahl: aktuell oder ein Jahr mit eigener Tabelle, mit dem Verbrauch dieses Kalenderjahres
+        function buildYears(data, texts) {
+            var chips = el('div', 'hsp-row');
+            var options = [['current', texts.current]].concat((data.years || []).map(function (year) {
+                return [String(year), String(year)];
+            }));
+            options.forEach(function (entry) {
+                var chip = el('button', 'hsp-chip' + (String(data.selected) === entry[0] ? ' hsp-on' : ''), entry[1]);
+                chip.type = 'button';
+                chip.addEventListener('click', function () {
+                    load(entry[0]);
+                });
+                chips.appendChild(chip);
+            });
+            return chips;
+        }
+
+        function card(label, value, note) {
+            var box = el('div', 'hsp-card');
+            box.appendChild(el('div', 'hsp-label', label));
+            box.appendChild(el('div', 'hsp-value', value));
+            if (note) {
+                box.appendChild(el('div', 'hsp-note', note));
+            }
+            return box;
+        }
+
+        function boundText(data, index, texts) {
+            return index < 3 ? texts.upTo + ' ' + fmt(data.bounds[index], 0) : texts.over + ' ' + fmt(data.bounds[2], 0);
+        }
+
+        function errorText(error, texts) {
+            if (error === 'tables') {
+                return texts.noTables;
+            }
+            if (error === 'row') {
+                return texts.noRow;
+            }
+            if (error === 'source') {
+                return texts.noSource;
+            }
+            if (error.indexOf('Wohnfläche') >= 0) {
+                return texts.needArea;
+            }
+            if (error.indexOf('Energieträger') >= 0) {
+                return texts.needCarrier;
+            }
+            if (error.indexOf('Heizwert') >= 0) {
+                return texts.needFactor;
+            }
+            if (error.indexOf('Heizung') >= 0) {
+                return texts.needHeating;
+            }
+            return texts.noTables;
+        }
+
+        function render() {
+            if (!state) {
+                return;
+            }
+            var texts = state.texts;
+            var data = state.data;
+            root.textContent = '';
+            if (!data) {
+                root.appendChild(el('div', 'hsp-empty', texts.empty));
+                fit();
+                return;
+            }
+            if (data.years && data.years.length > 0 && data.selected) {
+                root.appendChild(buildYears(data, texts));
+            }
+            if (data.error) {
+                root.appendChild(el('div', 'hsp-empty', errorText(data.error, texts)));
+                fit();
+                return;
+            }
+
+            var color = COLORS[data.category];
+            var hero = el('div', 'hsp-hero');
+            var badge = el('div', 'hsp-badge', texts.category[data.category]);
+            badge.style.setProperty('--c', color);
+            hero.appendChild(badge);
+            var text = el('div');
+            text.appendChild(el('div', 'hsp-title', texts.category[data.category]));
+            text.appendChild(el('div', 'hsp-sub', fmt(data.perM2, 0) + ' kWh/m² · ' + texts.carrier[data.carrier] + ' · ' + fmt(data.area, 0) + ' m²'));
+            hero.appendChild(text);
+            root.appendChild(hero);
+
+            var scale = el('div', 'hsp-scale');
+            var marker = el('div', 'hsp-marker');
+            marker.style.left = (data.position * 100) + '%';
+            scale.appendChild(marker);
+            var segments = el('div', 'hsp-segments');
+            for (var index = 0; index < 4; index++) {
+                (function (i) {
+                    var segment = el('div', 'hsp-seg' + (i === data.category ? '' : ' hsp-dim'), texts.category[i]);
+                    segment.style.setProperty('--c', COLORS[i]);
+                    hint(segment, [texts.category[i], boundText(data, i, texts) + ' kWh/m²', texts.meaning[i]]);
+                    segments.appendChild(segment);
+                })(index);
+            }
+            scale.appendChild(segments);
+            root.appendChild(scale);
+
+            var bounds = el('div', 'hsp-bounds');
+            for (var b = 0; b < 4; b++) {
+                bounds.appendChild(el('span', b === data.category ? 'hsp-own' : '', boundText(data, b, texts)));
+            }
+            root.appendChild(bounds);
+
+            root.appendChild(el('div', 'hsp-text', texts.meaning[data.category]));
+
+            var cards = el('div', 'hsp-cards');
+            cards.appendChild(card(texts.perM2, fmt(data.perM2, 1) + ' kWh', fmt(data.yearlyKWh, 0) + ' kWh ' + texts.perYear));
+            if (data.costPerM2 !== null) {
+                var costNote = data.costCategory !== null ? texts.category[data.costCategory] : '';
+                cards.appendChild(card(texts.costPerM2, fmt(data.costPerM2, 2) + ' €', costNote));
+            }
+            if (data.category > 0) {
+                var saving = fmt(data.toNextKWh, 0) + ' kWh';
+                cards.appendChild(card(texts.toNext, saving, data.toNextCost !== null ? texts.saving + ' ' + fmt(data.toNextCost, 0) + ' € ' + texts.perYear : ''));
+            }
+            root.appendChild(cards);
+
+            var notes = [data.basisLabel === '' ? texts.rolling : data.basisLabel + (data.annualized ? ' · ' + texts.annualized : '')];
+            notes.push(data.belowRange ? texts.belowRange : texts.sizeClass + ' ' + texts.sizeFrom + ' ' + data.areaClass + ' m²');
+            if (data.hotWaterAdd > 0) {
+                notes.push(texts.hotWater);
+            }
+            root.appendChild(el('div', 'hsp-source', notes.join(' · ') + ' · ' + texts.source + ' ' + data.tableYear));
+            fit();
+        }
+
+        // Wird beim Laden mit den Startdaten und danach bei jeder Änderung vom Modul aufgerufen
+        window.handleMessage = function (json) {
+            try {
+                state = JSON.parse(json);
+            } catch (e) {
+                return;
+            }
+            render();
+        };
+
+        window.addEventListener('resize', fit);
+        window.addEventListener('load', fit);
+        if (window.MutationObserver) {
+            new MutationObserver(fit).observe(document.body, {attributes: true, attributeFilter: ['style', 'class']});
+        }
+        setTimeout(fit, 200);
+        fit();
+    })();
+</script>
