@@ -56,8 +56,7 @@ class EmissionFactorsTest extends TestCase
 
     private function subject(): object
     {
-        return new class()
-        {
+        return new class() {
             use EmissionFactors;
 
             public function factorOf(array $Heating): float
