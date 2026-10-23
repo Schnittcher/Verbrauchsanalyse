@@ -25,7 +25,7 @@ Die Instanz ist ein Kind der Instanz [Verbrauchsquellen](../Verbrauchsquellen/RE
 * **Wohnfläche**: die beheizte Wohnfläche des **gesamten Gebäudes**, nicht nur der Wohnung. Der Heizspiegel vergleicht Gebäude.
 * Optional ein **Preis** je Einheit der Heizungsvariable für die Kosten.
 
-Der Heizspiegel gilt für Verbrauch und Kosten für Heizung und Warmwasser zusammen. Hängt das Warmwasser an einem elektrischen Durchlauferhitzer oder Boiler, rechnet der Heizspiegel einen festen Zuschlag je Quadratmeter dazu, den das Modul ergänzt, wenn die Verbrauchsquellen Warmwasser mit Strom angeben.
+Der Heizspiegel gilt für Heizung und Warmwasser zusammen. Wie das Warmwasser erwärmt wird, entscheidet, ob ein Zuschlag nötig ist, das steht in der Konfiguration unter der Tabelle.
 
 ## 2. Konfiguration
 
@@ -34,11 +34,31 @@ Feld | Beschreibung
 Werte der Verbrauchsquellen überschreiben | Mit dem Haken erscheinen die Felder Wohnfläche, Warmwasser mit Strom, Heizwert und Preis der Heizung. Sie gelten nur für diese Instanz und ersetzen die Werte aus den [Verbrauchsquellen](../Verbrauchsquellen/README.md), die anderen Werte kommen weiter von dort. So lässt sich dieselbe Auswertung mit anderen Werten nutzen, ohne einen zweiten Splitter anzulegen. Standard: aus.
 Verbrauch für den Vergleich | Letzte 365 Tage (bis gestern), letztes Kalenderjahr oder dieses Jahr, hochgerechnet. Die Hochrechnung teilt den Verbrauch seit dem 1. Januar durch die vergangenen Tage und rechnet auf 365 Tage um, sie schwankt stark im Jahresverlauf, weil die Heizung im Winter läuft. Standard: letzte 365 Tage.
 Aktualisierungsintervall | Alle wie viele Minuten neu gerechnet wird. Standard: 720 Minuten.
-Zuschlag für Warmwasser | Gilt, wenn in den [Verbrauchsquellen](../Verbrauchsquellen/README.md) angegeben ist, dass das Warmwasser mit Strom erwärmt wird (Durchlauferhitzer oder Boiler). Der Zuschlag kommt aus den vier Feldern daneben.
+Zuschlag für Warmwasser | Gilt, wenn "Warmwasser mit Strom" angehakt ist (Durchlauferhitzer oder Boiler). Wann das nötig ist und wie gerechnet wird, steht unter der Tabelle.
 Zuschlag in kWh und EUR je m², auch mit Wärmepumpe | Die Pauschalen des Heizspiegels 2025: 24 kWh und 2,65 € (Wärmepumpe: 9,6 kWh und 2,45 €) je m² und Jahr. Bei einer neuen Ausgabe hier anpassen.
 Referenztabellen | Baum mit den Grenzen, siehe unten.
 
 **Referenztabellen:** Wie beim [Stromspiegel](../Stromspiegel/README.md) steht jedes **Jahr** als Gruppe im Baum, den du aufklappst. Darunter liegen die Zeilen: Gebäudefläche ab (80, 150, 250 oder 500 m²), Energieträger, die Obergrenzen für niedrig, mittel und erhöht in kWh je m² und Jahr und dieselben Grenzen in Euro. Darüber liegt "zu hoch". Die kWh-Werte müssen aufsteigen, Zeilen mit anderen Werten werden ignoriert. Mit "Neues Jahr" und dem Knopf daneben kopierst du das letzte frühere Jahr als neue Gruppe, "Werte des Heizspiegels 2025 hinzufügen" stellt die Vorgabe wieder her. Erst "Übernehmen" speichert.
+
+**Zuschlag für Warmwasser:** Der Heizspiegel vergleicht Heizenergie **einschließlich Warmwasser**. Das Modul kennt aber nur den Verbrauch der Heizungsvariable. Ob darin auch das Warmwasser steckt, hängt von deiner Anlage ab:
+
+Warmwasser wird erwärmt | Zuschlag | Warum
+------------ | ------------ | ----------------
+Über die Heizung (Gas-, Öl-, Pelletkessel, Fernwärme, Wärmepumpe mit Warmwasserspeicher) | Nein | Der Verbrauch der Heizungsvariable enthält das Warmwasser schon.
+Mit Strom, getrennt von der Heizung (Durchlauferhitzer, Boiler) | Ja | Dieser Strom steht nicht in der Heizungsvariable und fehlt im Vergleich. Der Heizspiegel rechnet dafür pauschal einen festen Wert je Quadratmeter dazu.
+
+Der Zuschlag gilt nur, wenn in den [Verbrauchsquellen](../Verbrauchsquellen/README.md) "Warmwasser mit Strom" angehakt ist. In der Instanz selbst geht es mit "Werte der Verbrauchsquellen überschreiben", dann erscheint der Schalter dort. Ohne Haken gibt es keinen Zuschlag.
+
+Er ist eine Pauschale je m² und Jahr, keine Messung. Das Modul teilt den Jahresverbrauch der Heizung durch die Wohnfläche und addiert die Pauschale:
+
+* Heizenergie je m² = Jahresverbrauch in kWh ÷ Wohnfläche + Zuschlag in kWh je m²
+* Heizkosten je m² = Jahreskosten ÷ Wohnfläche + Zuschlag in Euro je m²
+
+Beispiel: 15.000 kWh im Jahr bei 150 m² ergeben 100 kWh/m². Mit Warmwasser über Strom kommen 24 kWh/m² dazu, die Einordnung rechnet mit 124 kWh/m². Der Zuschlag steht nicht nur in der Anzeige, er verschiebt die Kategorie. Ein falscher Schalter kann das Ergebnis um eine ganze Kategorie ändern.
+
+Die vier Felder in der Konfiguration enthalten die Pauschalen des Heizspiegels 2025: 24 kWh und 2,65 € je m² und Jahr, mit Wärmepumpe 9,6 kWh und 2,45 € je m². "Mit Wärmepumpe" gilt, wenn als Energieträger Strom für Wärmepumpen gewählt ist. Erscheint eine neue Ausgabe des Heizspiegels, trägst du die neuen Pauschalen hier ein.
+
+Die Kachel zeigt unten einen Hinweis "inklusive Warmwasser mit Strom", wenn der Zuschlag gerechnet wurde. Die Variable `KWhPerM2` enthält den Zuschlag.
 
 ## 3. Kachel
 
