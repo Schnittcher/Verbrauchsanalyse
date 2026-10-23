@@ -64,40 +64,88 @@
             "maximum": 10080
         },
         {
-            "type": "NumberSpinner",
-            "name": "HotWaterKWh",
-            "caption": "Surcharge in kWh per m²",
-            "digits": 1,
-            "minimum": 0
-        },
-        {
-            "type": "Label",
-            "caption": "Surcharge with heat pump in kWh per m²"
-        },
-        {
-            "type": "NumberSpinner",
-            "name": "HotWaterKWhHeatPump",
-            "digits": 1,
-            "minimum": 0,
-            "width": "180px"
-        },
-        {
-            "type": "NumberSpinner",
-            "name": "HotWaterCost",
-            "caption": "Surcharge in EUR per m²",
-            "digits": 2,
-            "minimum": 0
-        },
-        {
-            "type": "Label",
-            "caption": "Surcharge with heat pump in EUR per m²"
-        },
-        {
-            "type": "NumberSpinner",
-            "name": "HotWaterCostHeatPump",
-            "digits": 2,
-            "minimum": 0,
-            "width": "180px"
+            "type": "ExpansionPanel",
+            "caption": "Surcharge for hot water with electricity",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "The surcharge is added per m² and year if the hot water is heated with electricity (Hot water with electricity in the Consumption sources). If the heating also heats the water, it does not apply."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Each row applies to the edition of its year. A year without its own row uses the last earlier row. Default: values of the Heizspiegel 2025."
+                },
+                {
+                    "type": "List",
+                    "name": "Surcharges",
+                    "caption": "Surcharge per edition of the Heizspiegel",
+                    "rowCount": 4,
+                    "add": true,
+                    "delete": true,
+                    "sort": {
+                        "column": "Year",
+                        "direction": "descending"
+                    },
+                    "columns": [
+                        {
+                            "caption": "Year",
+                            "name": "Year",
+                            "width": "80px",
+                            "add": 2026,
+                            "edit": {
+                                "type": "NumberSpinner",
+                                "minimum": 2000,
+                                "maximum": 2100
+                            }
+                        },
+                        {
+                            "caption": "kWh per m²",
+                            "name": "KWh",
+                            "width": "120px",
+                            "add": 24.0,
+                            "edit": {
+                                "type": "NumberSpinner",
+                                "digits": 1,
+                                "minimum": 0
+                            }
+                        },
+                        {
+                            "caption": "EUR per m²",
+                            "name": "Cost",
+                            "width": "120px",
+                            "add": 2.65,
+                            "edit": {
+                                "type": "NumberSpinner",
+                                "digits": 2,
+                                "minimum": 0
+                            }
+                        },
+                        {
+                            "caption": "Heat pump: kWh per m²",
+                            "name": "KWhHeatPump",
+                            "width": "170px",
+                            "add": 9.6,
+                            "edit": {
+                                "type": "NumberSpinner",
+                                "digits": 1,
+                                "minimum": 0
+                            }
+                        },
+                        {
+                            "caption": "Heat pump: EUR per m²",
+                            "name": "CostHeatPump",
+                            "width": "170px",
+                            "add": 2.45,
+                            "edit": {
+                                "type": "NumberSpinner",
+                                "digits": 2,
+                                "minimum": 0
+                            }
+                        }
+                    ],
+                    "values": []
+                }
+            ]
         },
         {
             "type": "RowLayout",

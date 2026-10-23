@@ -63,6 +63,9 @@ class Heizspiegel extends IPSModuleStrict
         ]
     ];
 
+    // Zuschlag für Warmwasser mit Strom nach dem Heizspiegel 2025: kWh und Euro je m² und Jahr, ohne und mit Wärmepumpe
+    private const DEFAULT_SURCHARGE = ['KWh' => 24.0, 'Cost' => 2.65, 'KWhHeatPump' => 9.6, 'CostHeatPump' => 2.45];
+
     // Zahlen der Auswahl im Formular für die Energieträger der Tabelle
     private const CARRIER_IDS = ['gas' => 1, 'oil' => 2, 'district' => 3, 'heatpump' => 4, 'pellets' => 5];
 
@@ -71,10 +74,13 @@ class Heizspiegel extends IPSModuleStrict
         //Never delete this line!
         parent::Create();
 
-        $this->RegisterPropertyFloat('HotWaterKWh', 24.0);
-        $this->RegisterPropertyFloat('HotWaterKWhHeatPump', 9.6);
-        $this->RegisterPropertyFloat('HotWaterCost', 2.65);
-        $this->RegisterPropertyFloat('HotWaterCostHeatPump', 2.45);
+        // Die vier Einzelwerte gab es vor der Liste je Jahr, sie stehen nur noch für die Übernahme in die Liste (siehe migrateSurcharges)
+        $this->RegisterPropertyFloat('HotWaterKWh', self::DEFAULT_SURCHARGE['KWh']);
+        $this->RegisterPropertyFloat('HotWaterKWhHeatPump', self::DEFAULT_SURCHARGE['KWhHeatPump']);
+        $this->RegisterPropertyFloat('HotWaterCost', self::DEFAULT_SURCHARGE['Cost']);
+        $this->RegisterPropertyFloat('HotWaterCostHeatPump', self::DEFAULT_SURCHARGE['CostHeatPump']);
+        $this->RegisterPropertyString('Surcharges', (string) json_encode([['Year' => self::DEFAULT_YEAR] + self::DEFAULT_SURCHARGE]));
+        $this->RegisterAttributeBoolean('SurchargesMigrated', false);
         $this->RegisterPropertyInteger('Basis', self::BASIS_ROLLING);
         $this->RegisterPropertyInteger('UpdateInterval', 720);
         $this->RegisterPropertyString('Tables', (string) json_encode($this->referenceTreeFromFlat($this->defaultRows(self::DEFAULT_YEAR))));
@@ -108,6 +114,10 @@ class Heizspiegel extends IPSModuleStrict
             foreach ($Messages as $Message) {
                 $this->UnregisterMessage($SenderID, $Message);
             }
+        }
+        if ($this->migrateSurcharges()) {
+            // Die Liste ist neu gesetzt, der Aufruf von IPS_ApplyChanges läuft danach noch einmal
+            return;
         }
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
         $this->registerSourceMessages();
@@ -264,6 +274,66 @@ class Heizspiegel extends IPSModuleStrict
         return $Tables;
     }
 
+    // ---------------------------------------------------------------- Zuschläge
+
+    /**
+     * Übernimmt die früheren Einzelwerte einmalig in die Liste der Zuschläge, wenn der Nutzer sie geändert hat und die Liste noch die
+     * Vorgabe enthält. Gibt true zurück, wenn dafür die Eigenschaft gesetzt wurde und die Instanz neu übernimmt.
+     */
+    private function migrateSurcharges(): bool
+    {
+        if ($this->ReadAttributeBoolean('SurchargesMigrated')) {
+            return false;
+        }
+        $Old = [
+            'KWh'          => $this->ReadPropertyFloat('HotWaterKWh'),
+            'Cost'         => $this->ReadPropertyFloat('HotWaterCost'),
+            'KWhHeatPump'  => $this->ReadPropertyFloat('HotWaterKWhHeatPump'),
+            'CostHeatPump' => $this->ReadPropertyFloat('HotWaterCostHeatPump')
+        ];
+        $Default = [['Year' => self::DEFAULT_YEAR] + self::DEFAULT_SURCHARGE];
+        $Current = json_decode($this->ReadPropertyString('Surcharges'), true);
+        $Changed = $Old !== self::DEFAULT_SURCHARGE;
+        // Nur eine unveränderte Liste wird ersetzt, eigene Zeilen des Nutzers bleiben
+        if ($Changed && $Current == $Default) {
+            $this->SendDebug(__FUNCTION__, 'Frühere Zuschläge werden in die Liste übernommen', 0);
+            IPS_SetProperty($this->InstanceID, 'Surcharges', (string) json_encode([['Year' => self::DEFAULT_YEAR] + $Old]));
+            $this->WriteAttributeBoolean('SurchargesMigrated', true);
+            IPS_ApplyChanges($this->InstanceID);
+            return true;
+        }
+        $this->WriteAttributeBoolean('SurchargesMigrated', true);
+        return false;
+    }
+
+    /**
+     * Der Zuschlag der Ausgabe eines Jahres: die Zeile dieses Jahres, sonst die des letzten Jahres davor, sonst die früheste.
+     * Ohne gültige Zeile gelten die Werte des Heizspiegels 2025.
+     *
+     * @return array{KWh: float, Cost: float, KWhHeatPump: float, CostHeatPump: float}
+     */
+    private function surchargeFor(int $Year): array
+    {
+        $Rows = json_decode($this->ReadPropertyString('Surcharges'), true);
+        $ByYear = [];
+        foreach (is_array($Rows) ? $Rows : [] as $Row) {
+            if (is_array($Row) && (int) ($Row['Year'] ?? 0) >= 2000) {
+                $ByYear[(int) $Row['Year']] = [
+                    'KWh'          => max(0.0, (float) ($Row['KWh'] ?? 0)),
+                    'Cost'         => max(0.0, (float) ($Row['Cost'] ?? 0)),
+                    'KWhHeatPump'  => max(0.0, (float) ($Row['KWhHeatPump'] ?? 0)),
+                    'CostHeatPump' => max(0.0, (float) ($Row['CostHeatPump'] ?? 0))
+                ];
+            }
+        }
+        if ($ByYear === []) {
+            return self::DEFAULT_SURCHARGE;
+        }
+        ksort($ByYear);
+        $Earlier = array_filter(array_keys($ByYear), fn (int $Y): bool => $Y <= $Year);
+        return $ByYear[$Earlier === [] ? (int) array_key_first($ByYear) : max($Earlier)];
+    }
+
     // ---------------------------------------------------------------- Berechnung
 
     private function refresh(): void
@@ -382,8 +452,10 @@ class Heizspiegel extends IPSModuleStrict
         $WaterKWh = 0.0;
         $WaterCost = 0.0;
         if (!empty($Sources['HotWaterElectric'])) {
-            $WaterKWh = $HeatPump ? $this->ReadPropertyFloat('HotWaterKWhHeatPump') : $this->ReadPropertyFloat('HotWaterKWh');
-            $WaterCost = $HeatPump ? $this->ReadPropertyFloat('HotWaterCostHeatPump') : $this->ReadPropertyFloat('HotWaterCost');
+            // Der Zuschlag gehört zur Ausgabe des Heizspiegels, mit der gerechnet wird
+            $Surcharge = $this->surchargeFor($TableYear);
+            $WaterKWh = $HeatPump ? $Surcharge['KWhHeatPump'] : $Surcharge['KWh'];
+            $WaterCost = $HeatPump ? $Surcharge['CostHeatPump'] : $Surcharge['Cost'];
         }
         $PerM2 = $YearlyKWh / $Area + $WaterKWh;
         $Category = $this->categoryOf($PerM2, $Row['kwh']);
