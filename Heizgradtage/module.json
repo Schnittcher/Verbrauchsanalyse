@@ -4,7 +4,8 @@
     "type": 3,
     "vendor": "",
     "aliases": [
-        "Witterungsbereinigter Verbrauch"
+        "Witterungsbereinigter Verbrauch",
+        "Heizgradtage"
     ],
     "parentRequirements": [
         "{EEE0155C-0EE0-44EB-9AE2-B9163F802FC8}"
