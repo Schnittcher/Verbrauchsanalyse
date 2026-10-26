@@ -355,6 +355,9 @@
             if (error === 'tables') {
                 return texts.noTables;
             }
+            if (error.indexOf('Referenzwerte sind ungültig') >= 0) {
+                return texts.tablesInvalid;
+            }
             if (error === 'row') {
                 return texts.noRow;
             }

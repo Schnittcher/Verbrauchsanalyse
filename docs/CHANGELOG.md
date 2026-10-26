@@ -1,5 +1,18 @@
 # Changelog
 
+## 26.10.2026 - Version 1.0.1
+
+### Neu
+- Heizspiegel: Der Zuschlag für Warmwasser mit Strom steht jetzt als Liste mit einer Zeile je Jahr im Formular und gilt für die Ausgabe des Heizspiegels, mit der gerechnet wird. Achtung: Hattest du die bisherigen Zuschlagsfelder geändert, übernimmt das Modul deine Werte einmalig als Zeile 2025.
+- Heizspiegel: Das Formular fasst die Zuschläge in einem eigenen aufklappbaren Bereich zusammen, mit Erklärung.
+- Heizgradtage: Das Modul lässt sich im Dialog "Instanz hinzufügen" auch mit "Heizgradtage" suchen.
+
+### Fixes
+- Heizspiegel: Eigene Zeilen in den Referenztabellen, die auf der obersten Ebene des Baums angelegt wurden, werden erkannt. Vorher blieb die Tabelle leer und die Instanz meldete eine ungültige Konfiguration.
+- Heizspiegel und Stromspiegel: "Werte des Heizspiegels 2025 hinzufügen" bzw. die Vorgabe des Stromspiegels ersetzt eine leere Jahresgruppe, statt sie stehen zu lassen.
+- Heizspiegel: Sind die Referenzwerte ungültig, nennt die Kachel den Grund (Gebäudefläche, Energieträger oder aufsteigende kWh-Grenzen).
+- Verbrauchsquellen: "Variablen suchen" brach mit einem Fehler ab, wenn die Liste nur eine Zeile enthielt.
+
 ## 21.10.2026 - Version 1.0
 
 ### Neu

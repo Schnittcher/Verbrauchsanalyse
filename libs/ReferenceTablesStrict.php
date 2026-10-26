@@ -7,6 +7,8 @@ declare(strict_types=1);
  * Die Zeilen stehen in der Eigenschaft 'Tables' als JSON-Liste mit id, parent und den Spalten, das Jahr einer Zeile ist das Jahr ihrer Gruppe.
  * Eine Liste im früheren flachen Format (ohne id, mit Jahr je Zeile) wird beim Lesen umgewandelt. Typisiert für IPSModuleStrict.
  *
+ * Optional: referenceRowIsData(array $Row): bool für Gruppenzeilen, die selbst Werte tragen und als Zeile ihres Jahres gelten.
+ *
  * Das Modul stellt bereit: referenceDefaultYear(): int, referenceDefaultRows(int $Year): array (flache Zeilen) und
  * referenceGroupRow(): array (die Spalten einer Gruppenzeile mit Nullwerten). Im Formular heißt der Baum 'Tables', die Eingabe
  * für das neue Jahr 'NewYear'. Die Schaltflächen rufen CopyYear und AddDefaults des Moduls auf.
@@ -72,13 +74,23 @@ trait ReferenceTables
     public function AddDefaults(): void
     {
         $Tree = $this->referenceTreeRows();
+        $Year = $this->referenceDefaultYear();
+        // Ein Jahr zählt nur, wenn es Zeilen hat. Eine leere Gruppe, etwa von einer gelöschten Tabelle, steht der Vorgabe nicht im Weg.
+        $HasRows = [];
+        foreach ($this->referenceFlatRows() as $Row) {
+            $HasRows[(int) ($Row['Year'] ?? 0)] = true;
+        }
+        if (isset($HasRows[$Year])) {
+            $this->UpdateFormField('Tables', 'values', (string) json_encode($Tree));
+            return;
+        }
+        $EmptyGroups = [];
         foreach ($Tree as $Row) {
-            if ((int) ($Row['parent'] ?? 0) === 0 && (int) $Row['Year'] === $this->referenceDefaultYear()) {
-                $this->UpdateFormField('Tables', 'values', (string) json_encode($Tree));
-                return;
+            if ((int) ($Row['parent'] ?? 0) === 0 && (int) ($Row['Year'] ?? 0) === $Year) {
+                $EmptyGroups[(int) $Row['id']] = true;
             }
         }
-        $Year = $this->referenceDefaultYear();
+        $Tree = array_values(array_filter($Tree, fn (array $Row): bool => !isset($EmptyGroups[(int) ($Row['id'] ?? 0)])));
         $this->UpdateFormField('Tables', 'values', (string) json_encode($this->referenceAppendYear($Tree, $Year, $this->referenceDefaultRows($Year))));
     }
 
@@ -115,6 +127,9 @@ trait ReferenceTables
             $Parent = is_array($Row) ? (int) ($Row['parent'] ?? 0) : 0;
             if ($Parent !== 0 && isset($Years[$Parent])) {
                 $Row['Year'] = $Years[$Parent];
+                $Flat[] = $Row;
+            } elseif (is_array($Row) && $Parent === 0 && method_exists($this, 'referenceRowIsData') && $this->referenceRowIsData($Row)) {
+                // Eine Zeile mit Werten auf der obersten Ebene, etwa mit dem Knopf zum Hinzufügen angelegt, zählt als Zeile ihres Jahres
                 $Flat[] = $Row;
             }
         }

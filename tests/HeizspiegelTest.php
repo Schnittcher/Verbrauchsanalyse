@@ -75,6 +75,25 @@ class HeizspiegelTest extends TestCase
         $this->assertEqualsWithDelta(31.0, $this->surcharge($id, 2026)['KWh'], 0.0001);
     }
 
+    public function testRowOnTopLevelWithValuesCountsAsRowOfItsYear(): void
+    {
+        $group = ['id' => 1, 'Year' => 2026, 'Area' => 0, 'Carrier' => 0, 'KWh1' => 0, 'KWh2' => 0, 'KWh3' => 0, 'Cost1' => 0, 'Cost2' => 0, 'Cost3' => 0];
+        $own = ['id' => 2, 'Year' => 2026, 'Area' => 80, 'Carrier' => 1, 'KWh1' => 50, 'KWh2' => 100, 'KWh3' => 150, 'Cost1' => 5, 'Cost2' => 10, 'Cost3' => 15];
+
+        // Eine leere Gruppe ergibt keine Tabelle, eine Zeile mit Werten auf der obersten Ebene schon
+        $this->assertSame([], $this->tables($this->createInstance(['Tables' => json_encode([$group])])));
+        $tables = $this->tables($this->createInstance(['Tables' => json_encode([$own])]));
+        $this->assertSame([2026], array_keys($tables));
+        $this->assertSame([50.0, 100.0, 150.0], $tables[2026][80]['gas']['kwh']);
+    }
+
+    public function testRowsWithoutRisingLimitsAreIgnored(): void
+    {
+        $row = ['id' => 1, 'Year' => 2026, 'Area' => 80, 'Carrier' => 1, 'KWh1' => 150, 'KWh2' => 100, 'KWh3' => 50, 'Cost1' => 0, 'Cost2' => 0, 'Cost3' => 0];
+
+        $this->assertSame([], $this->tables($this->createInstance(['Tables' => json_encode([$row])])));
+    }
+
     private function row(int $year, float $kwh, float $cost): array
     {
         return ['Year' => $year, 'KWh' => $kwh, 'Cost' => $cost, 'KWhHeatPump' => 9.6, 'CostHeatPump' => 2.45];
@@ -92,6 +111,12 @@ class HeizspiegelTest extends TestCase
     {
         $module = IPS\InstanceManager::getInstanceInterface($instanceID);
         (new ReflectionMethod($module, 'WriteAttributeBoolean'))->invoke($module, 'SurchargesMigrated', $value);
+    }
+
+    private function tables(int $instanceID): array
+    {
+        $module = IPS\InstanceManager::getInstanceInterface($instanceID);
+        return (new ReflectionMethod($module, 'tables'))->invoke($module);
     }
 
     private function surcharge(int $instanceID, int $year): array

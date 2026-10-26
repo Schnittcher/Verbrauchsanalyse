@@ -67,6 +67,7 @@
             "Enter the living area in the Consumption sources instance": "Die Wohnfläche in der Instanz Verbrauchsquellen eintragen",
             "Choose the energy source of the heating in the Consumption sources instance": "Den Energieträger der Heizung in der Instanz Verbrauchsquellen wählen",
             "Enter the energy per unit of the heating in the Consumption sources instance": "Die Energie je Einheit der Heizung in der Instanz Verbrauchsquellen eintragen",
+            "The reference values have no valid row: check building area, energy source and rising kWh limits": "Die Referenzwerte enthalten keine gültige Zeile: Gebäudefläche, Energieträger und aufsteigende kWh-Grenzen prüfen",
             "Enter reference values in the instance": "Referenzwerte in der Instanz eintragen",
             "No reference values for this energy source in the edition": "Für diesen Energieträger gibt es in der Ausgabe keine Referenzwerte",
             "The heating variable needs an archive": "Die Heizungsvariable braucht ein Archiv",

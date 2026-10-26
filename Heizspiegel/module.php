@@ -227,6 +227,16 @@ class Heizspiegel extends IPSModuleStrict
     }
 
     /**
+     * Eine Zeile der obersten Ebene mit Gebäudefläche, Energieträger und Grenzen gilt als Zeile ihres Jahres.
+     *
+     * @param array<string, mixed> $Row
+     */
+    private function referenceRowIsData(array $Row): bool
+    {
+        return (int) ($Row['Area'] ?? 0) >= 1 && (int) ($Row['Carrier'] ?? 0) >= 1 && (float) ($Row['KWh1'] ?? 0) > 0;
+    }
+
+    /**
      * Die Vorgabe als flache Zeilen: Jahr, Gebäudefläche ab, Energieträger, Grenzen in kWh und in Euro je m² und Jahr.
      *
      * @return array<int, array<string, mixed>>
@@ -605,15 +615,16 @@ class Heizspiegel extends IPSModuleStrict
                     'pellets'  => $this->Translate('Wood pellets'),
                     'electric' => $this->Translate('Heat pump')
                 ],
-                'consumption' => $this->Translate('Consumption'),
-                'needHeating' => $this->Translate('Enter the heating in the Consumption sources instance'),
-                'needArea'    => $this->Translate('Enter the living area in the Consumption sources instance'),
-                'needCarrier' => $this->Translate('Choose the energy source of the heating in the Consumption sources instance'),
-                'needFactor'  => $this->Translate('Enter the energy per unit of the heating in the Consumption sources instance'),
-                'noTables'    => $this->Translate('Enter reference values in the instance'),
-                'noRow'       => $this->Translate('No reference values for this energy source in the edition'),
-                'noSource'    => $this->Translate('The heating variable needs an archive'),
-                'empty'       => $this->Translate('No data yet')
+                'consumption'   => $this->Translate('Consumption'),
+                'needHeating'   => $this->Translate('Enter the heating in the Consumption sources instance'),
+                'needArea'      => $this->Translate('Enter the living area in the Consumption sources instance'),
+                'needCarrier'   => $this->Translate('Choose the energy source of the heating in the Consumption sources instance'),
+                'needFactor'    => $this->Translate('Enter the energy per unit of the heating in the Consumption sources instance'),
+                'noTables'      => $this->Translate('Enter reference values in the instance'),
+                'tablesInvalid' => $this->Translate('The reference values have no valid row: check building area, energy source and rising kWh limits'),
+                'noRow'         => $this->Translate('No reference values for this energy source in the edition'),
+                'noSource'      => $this->Translate('The heating variable needs an archive'),
+                'empty'         => $this->Translate('No data yet')
             ]
         ]);
     }
@@ -650,7 +661,8 @@ class Heizspiegel extends IPSModuleStrict
             return 'Der Zeitraum ist ungültig';
         }
         if ($this->tables() === []) {
-            return 'Die Liste der Referenzwerte enthält keine gültige Zeile';
+            // Zeilen ohne gültige Werte fallen bei tables() still weg, deshalb nennt die Meldung den Grund
+            return $this->referenceFlatRows() === [] ? 'Die Liste der Referenzwerte enthält keine gültige Zeile' : 'Die Referenzwerte sind ungültig: Gebäudefläche, Energieträger oder aufsteigende kWh-Grenzen prüfen';
         }
         if ($this->ReadPropertyInteger('UpdateInterval') < 1) {
             return 'Das Aktualisierungsintervall ist ungültig';
