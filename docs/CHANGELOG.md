@@ -12,6 +12,7 @@
 - Heizspiegel und Stromspiegel: "Werte des Heizspiegels 2025 hinzufügen" bzw. die Vorgabe des Stromspiegels ersetzt eine leere Jahresgruppe, statt sie stehen zu lassen.
 - Heizspiegel: Sind die Referenzwerte ungültig, nennt die Kachel den Grund (Gebäudefläche, Energieträger oder aufsteigende kWh-Grenzen).
 - Verbrauchsquellen: "Variablen suchen" brach mit einem Fehler ab, wenn die Liste nur eine Zeile enthielt.
+- Alle Module: Der Dokumentations-Link in der Modulbeschreibung führt jetzt auf die Seite des jeweiligen Moduls auf deinsmarthome.info statt auf die Startseite.
 
 ## 21.10.2026 - Version 1.0
 
