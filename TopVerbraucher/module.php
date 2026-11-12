@@ -134,6 +134,7 @@ class TopVerbraucher extends IPSModuleStrict
             'unit'      => $Config['Unit']['Out'],
             'digits'    => $Config['Unit']['Out'] === 'm³' ? 3 : 2,
             'mainId'    => $Config['MainMeter'],
+            'currency'  => $Config['Currency'],
             'clickOpen' => $this->ReadPropertyBoolean('OpenChartOnClick'),
             'periods'   => []
         ];
@@ -230,7 +231,7 @@ class TopVerbraucher extends IPSModuleStrict
         if ($Info['Family'] !== $Config['Unit']['Family']) {
             return null;
         }
-        return $this->hourlyPriceCost($ArchiveID, $PriceID, $MainID, $Info, $Start, $End);
+        return $this->hourlyPriceCost($ArchiveID, $PriceID, $MainID, $Info, $Start, $End, (int) ($Config['PriceFactorMode'] ?? 0));
     }
 
     private function buildPeriod(array $Config, array $Current, array $Previous, float $Price, array $Costs): array
@@ -303,6 +304,7 @@ class TopVerbraucher extends IPSModuleStrict
     private function maintainVariables(string $Unit, int $Residents, float $Area): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $Labels = [
             'today' => $this->Translate('Today'),
             'week'  => $this->Translate('This week'),
@@ -312,7 +314,7 @@ class TopVerbraucher extends IPSModuleStrict
         $Position = 1;
         foreach (self::PERIODS as $Period) {
             $this->MaintainVariable('Total_' . $Period, $this->Translate('Consumption') . ' ' . $Labels[$Period], VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Unit, 'DIGITS' => 2], $Position++, true);
-            $this->MaintainVariable('Cost_' . $Period, $this->Translate('Cost') . ' ' . $Labels[$Period], VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 2], $Position++, true);
+            $this->MaintainVariable('Cost_' . $Period, $this->Translate('Cost') . ' ' . $Labels[$Period], VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 2], $Position++, true);
             $this->MaintainVariable('PerResident_' . $Period, $this->Translate('Consumption per resident') . ' ' . $Labels[$Period], VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Unit, 'DIGITS' => 3], $Position++, $Residents > 0);
             $this->MaintainVariable('PerArea_' . $Period, $this->Translate('Consumption per m²') . ' ' . $Labels[$Period], VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Unit . '/m²', 'DIGITS' => 4], $Position++, $Area > 0);
             $this->MaintainVariable('Top_' . $Period, $this->Translate('Top consumers') . ' ' . $Labels[$Period], VARIABLETYPE_STRING, $Value, $Position++, true);

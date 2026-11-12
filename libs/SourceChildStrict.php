@@ -130,6 +130,16 @@ trait SourceChild
     }
 
     /**
+     * Anzeigetext der Währung aus den Verbrauchsquellen für Suffix und Kacheln ("€" ohne aktiven Splitter).
+     * Variablen werden vor der Abfrage der Quellen angelegt, deshalb fragt diese Methode selbst.
+     */
+    private function sourceCurrency(): string
+    {
+        $Sources = $this->requestSources();
+        return trim((string) (is_array($Sources) ? ($Sources['Currency'] ?? '') : '')) ?: '€';
+    }
+
+    /**
      * Die Felder "Override..." im form.json der Instanz, ohne den Haken selbst.
      *
      * @return array<int, string>
@@ -171,6 +181,7 @@ trait SourceChild
             if ($PriceID > 0) {
                 $Now = (float) GetValue($PriceID) * $this->priceFactor($PriceID);
             }
+            $Config['PriceFactorMode'] = 0;
             $Config['FixedPrice'] = $Fixed;
             $Config['PriceID'] = $PriceID;
             $Config['PriceNow'] = $Now;

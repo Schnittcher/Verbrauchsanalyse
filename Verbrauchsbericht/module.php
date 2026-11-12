@@ -470,7 +470,7 @@ class Verbrauchsbericht extends IPSModuleStrict
         if ($Config['PriceID'] > 0 && $Config['MainMeter'] > 0) {
             $Info = $this->unitInfoFor($Config['MainMeter'], $Config['Unit']);
             if ($Info['Family'] === $Config['Unit']['Family']) {
-                $Cost = $this->hourlyPriceCost($ArchiveID, $Config['PriceID'], $Config['MainMeter'], $Info, $Range['start'], $Range['end']);
+                $Cost = $this->hourlyPriceCost($ArchiveID, $Config['PriceID'], $Config['MainMeter'], $Info, $Range['start'], $Range['end'], (int) ($Config['PriceFactorMode'] ?? 0));
             }
         }
         $Cost ??= $Total * (float) $Config['FixedPrice'];
@@ -524,7 +524,7 @@ class Verbrauchsbericht extends IPSModuleStrict
         $Lines = [sprintf($this->Translate('Consumption report %s'), $this->opt('Name') . ' ' . $Label), ''];
         $TotalLine = sprintf($this->Translate('Total: %s %s'), $Num($Total, 2), $Unit);
         if ($WithCost) {
-            $TotalLine .= sprintf($this->Translate(', cost %s EUR'), $Num($Cost, 2));
+            $TotalLine .= sprintf($this->Translate(', cost %s %s'), $Num($Cost, 2), $Config['Currency']);
         }
         $Lines[] = $TotalLine;
         if ($Co2 !== null) {
@@ -557,7 +557,7 @@ class Verbrauchsbericht extends IPSModuleStrict
             foreach ($Rows as $Row) {
                 $Line = str_repeat('  ', $Row['level']) . $Row['name'] . ': ' . $Num($Row['value'], 2) . ' ' . $Unit . ' (' . $Num($Row['share'], 0) . ' %)';
                 if ($WithCost) {
-                    $Line .= ', ' . $Num($Row['cost'], 2) . ' EUR';
+                    $Line .= ', ' . $Num($Row['cost'], 2) . ' ' . $Config['Currency'];
                 }
                 $Lines[] = $Line;
             }
@@ -574,7 +574,7 @@ class Verbrauchsbericht extends IPSModuleStrict
                 'previous' => $Previous['total'] > 0 ? $Previous['total'] : null,
                 'co2'      => $Co2
             ];
-            $Csv = $this->buildCsv($Label, $Rows, $Unit, $Co2Factor, $Summary);
+            $Csv = $this->buildCsv($Label, $Rows, $Unit, $Co2Factor, $Summary, $Config['Currency']);
         }
 
         $Series = $this->seriesFor($Config, $ArchiveID, $Period, $Range);
@@ -594,6 +594,7 @@ class Verbrauchsbericht extends IPSModuleStrict
         $this->saveReportData((string) $this->opt('Name'), [
             'label'          => $Label,
             'unit'           => $Unit,
+            'currency'       => $Config['Currency'],
             'total'          => round($Total, 3),
             'cost'           => round($Cost, 2),
             'previous'       => $Previous['total'] > 0 ? round($Previous['total'], 3) : null,
@@ -620,6 +621,7 @@ class Verbrauchsbericht extends IPSModuleStrict
                 'name'           => (string) $this->opt('Name'),
                 'label'          => $Label,
                 'unit'           => $Unit,
+                'currency'       => $Config['Currency'],
                 'total'          => $Total,
                 'cost'           => $Cost,
                 'previous'       => $Previous['total'],
@@ -1071,7 +1073,7 @@ class Verbrauchsbericht extends IPSModuleStrict
     /**
      * Baut die Zeilen als CSV (Semikolon, UTF-8 mit Bytemarke für Excel).
      */
-    private function buildCsv(string $Label, array $Rows, string $Unit, float $Co2Factor, array $Summary): string
+    private function buildCsv(string $Label, array $Rows, string $Unit, float $Co2Factor, array $Summary, string $Currency): string
     {
         $Comma = $this->ReadPropertyBoolean('DecimalComma');
         $Num = fn (?float $Value, int $Digits): string => $Value === null ? '' : number_format($Value, $Digits, $Comma ? ',' : '.', '');
@@ -1079,7 +1081,7 @@ class Verbrauchsbericht extends IPSModuleStrict
 
         $Csv = "\xEF\xBB\xBF" . implode(';', [
             $this->Translate('Period'), $this->Translate('Level'), $this->Translate('Name'), $this->Translate('Consumption'), $this->Translate('Unit'),
-            $this->Translate('Share in %'), $this->Translate('Cost in EUR'), $this->Translate('Previous period'), $this->Translate('Change in %'), $this->Translate('CO2 in kg')
+            $this->Translate('Share in %'), sprintf($this->Translate('Cost in %s'), $Currency), $this->Translate('Previous period'), $this->Translate('Change in %'), $this->Translate('CO2 in kg')
         ]) . "\r\n";
         foreach ($Rows as $Row) {
             $Change = ($Row['previous'] !== null && $Row['previous'] > 0) ? ($Row['value'] - $Row['previous']) / $Row['previous'] * 100 : null;
@@ -1286,6 +1288,7 @@ class Verbrauchsbericht extends IPSModuleStrict
     private function maintainVariables(): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $Percent = $Value + ['SUFFIX' => ' %', 'DIGITS' => 1];
         $LastYear = false;
         foreach ($this->reports() as $Profile) {
@@ -1294,7 +1297,7 @@ class Verbrauchsbericht extends IPSModuleStrict
         $this->MaintainVariable('ReportText', $this->Translate('Report'), VARIABLETYPE_STRING, $Value, 1, true);
         $this->MaintainVariable('ReportPeriod', $this->Translate('Period of the report'), VARIABLETYPE_STRING, $Value, 2, true);
         $this->MaintainVariable('Total', $this->Translate('Total consumption'), VARIABLETYPE_FLOAT, $Value + ['DIGITS' => 2], 3, true);
-        $this->MaintainVariable('Cost', $this->Translate('Cost'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 2], 4, true);
+        $this->MaintainVariable('Cost', $this->Translate('Cost'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 2], 4, true);
         $this->MaintainVariable('ChangePrevious', $this->Translate('Change to the previous period'), VARIABLETYPE_FLOAT, $Percent, 5, true);
         $this->MaintainVariable('ChangeLastYear', $this->Translate('Change to the same period last year'), VARIABLETYPE_FLOAT, $Percent, 6, $LastYear);
         $this->MaintainVariable('ChangeAverage', $this->Translate('Change to the average'), VARIABLETYPE_FLOAT, $Percent, 7, true);

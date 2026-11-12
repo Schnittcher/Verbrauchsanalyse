@@ -18,15 +18,17 @@ trait ConsumptionTree
         $Sources = $this->requestSources();
         if ($Sources === null) {
             return [
-                'NoSources'  => true,
-                'Unit'       => $this->describeUnit('kWh'),
-                'Groups'     => [],
-                'Consumers'  => [],
-                'MainMeter'  => 0,
-                'PriceID'    => 0,
-                'FixedPrice' => 0.0,
-                'Residents'  => 0,
-                'Area'       => 0.0
+                'NoSources'       => true,
+                'Unit'            => $this->describeUnit('kWh'),
+                'Groups'          => [],
+                'Consumers'       => [],
+                'MainMeter'       => 0,
+                'PriceID'         => 0,
+                'PriceFactorMode' => 0,
+                'Currency'        => '€',
+                'FixedPrice'      => 0.0,
+                'Residents'       => 0,
+                'Area'            => 0.0
             ];
         }
 
@@ -46,6 +48,8 @@ trait ConsumptionTree
             'Consumers'        => $Consumers,
             'MainMeter'        => (int) ($Sources['MainMeter'] ?? 0),
             'PriceID'          => (int) ($Sources['PriceID'] ?? 0),
+            'PriceFactorMode'  => (int) ($Sources['PriceFactorMode'] ?? 0),
+            'Currency'         => (string) ($Sources['Currency'] ?? '€'),
             'FixedPrice'       => (float) ($Sources['FixedPrice'] ?? 0.0),
             'EmissionFactor'   => (float) ($Sources['EmissionFactor'] ?? 0.0),
             'EmissionID'       => (int) ($Sources['EmissionID'] ?? 0),

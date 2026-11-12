@@ -371,7 +371,7 @@
             cards.appendChild(card(texts.so, fmt(state.actual, 1) + ' ' + state.unit, null, false));
             cards.appendChild(card(texts.last, fmt(state.reference, 1) + ' ' + state.unit, null, false));
             cards.appendChild(card(texts.projected, fmt(state.projected, 0) + ' ' + state.unit, texts.targetValue + ': ' + fmt(state.targetValue, 0) + ' ' + state.unit, true));
-            cards.appendChild(card(texts.savings, signed(state.savingsCost, 2) + ' €', signed(state.savings, 0) + ' ' + state.unit, true));
+            cards.appendChild(card(texts.savings, signed(state.savingsCost, 2) + ' ' + (state.currency || '€'), signed(state.savings, 0) + ' ' + state.unit, true));
             root.appendChild(cards);
             fit();
         }

@@ -423,12 +423,12 @@
 
             var cards = el('div', 'ssp-cards');
             if (data.class > 0) {
-                cards.appendChild(card(texts.toNext, fmt(data.toNext, 0) + ' kWh', texts.saving + ' ' + fmt(data.costToNext, 0) + ' € ' + texts.perYear));
+                cards.appendChild(card(texts.toNext, fmt(data.toNext, 0) + ' kWh', texts.saving + ' ' + fmt(data.costToNext, 0) + ' ' + (data.currency || '€') + ' ' + texts.perYear));
                 if (data.class > 1) {
-                    cards.appendChild(card(texts.toA, fmt(data.toA, 0) + ' kWh', texts.saving + ' ' + fmt(data.costToA, 0) + ' € ' + texts.perYear));
+                    cards.appendChild(card(texts.toA, fmt(data.toA, 0) + ' kWh', texts.saving + ' ' + fmt(data.costToA, 0) + ' ' + (data.currency || '€') + ' ' + texts.perYear));
                 }
             }
-            cards.appendChild(card(texts.cost, fmt(data.cost, 0) + ' €', fmt(data.price, 3) + ' €/kWh'));
+            cards.appendChild(card(texts.cost, fmt(data.cost, 0) + ' ' + (data.currency || '€'), fmt(data.price, 3) + ' ' + (data.currency || '€') + '/kWh'));
             root.appendChild(cards);
 
             var basis = data.basisLabel === '' ? texts.rolling : data.basisLabel + (data.annualized ? ' · ' + texts.annualized : '');

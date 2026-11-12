@@ -4,6 +4,76 @@
             "type": "RowLayout",
             "items": [
                 {
+                    "type": "Select",
+                    "name": "Currency",
+                    "caption": "Currency",
+                    "width": "220px",
+                    "options": [
+                        {
+                            "caption": "Euro (€)",
+                            "value": "EUR"
+                        },
+                        {
+                            "caption": "Swiss franc (CHF)",
+                            "value": "CHF"
+                        },
+                        {
+                            "caption": "Pound sterling (£)",
+                            "value": "GBP"
+                        },
+                        {
+                            "caption": "US dollar ($)",
+                            "value": "USD"
+                        },
+                        {
+                            "caption": "Swedish krona (SEK)",
+                            "value": "SEK"
+                        },
+                        {
+                            "caption": "Norwegian krone (NOK)",
+                            "value": "NOK"
+                        },
+                        {
+                            "caption": "Danish krone (DKK)",
+                            "value": "DKK"
+                        },
+                        {
+                            "caption": "Polish zloty (PLN)",
+                            "value": "PLN"
+                        },
+                        {
+                            "caption": "Czech koruna (CZK)",
+                            "value": "CZK"
+                        },
+                        {
+                            "caption": "Custom",
+                            "value": "CUSTOM"
+                        }
+                    ]
+                },
+                {
+                    "type": "ValidationTextBox",
+                    "name": "CurrencyCustom",
+                    "caption": "Custom currency symbol",
+                    "width": "200px",
+                    "visible": false
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "CurrencyFromPrice",
+                    "caption": "Take currency from price variable if clear"
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "name": "CurrencyInfo",
+            "caption": " "
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
                     "type": "NumberSpinner",
                     "name": "Residents",
                     "caption": "Residents (0 = not used)",
@@ -94,13 +164,12 @@
                     "name": "HeatingPrice",
                     "digits": 3,
                     "minimum": 0,
-                    "suffix": "EUR",
                     "width": "220px",
                     "caption": "Price per unit"
                 },
                 {
                     "type": "Label",
-                    "caption": "Price per unit: price of one unit of the heating variable in EUR (0 = not used)"
+                    "caption": "Price per unit: price of one unit of the heating variable in the selected currency (0 = not used)"
                 },
                 {
                     "type": "NumberSpinner",
@@ -148,7 +217,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Fixed price per kWh or unit in EUR"
+                    "caption": "Fixed price per kWh or unit"
                 },
                 {
                     "type": "NumberSpinner",
@@ -162,6 +231,31 @@
                     "name": "PriceVariableID",
                     "caption": "Price variable (optional, replaces the fixed price)",
                     "width": "436px"
+                },
+                {
+                    "type": "Select",
+                    "name": "PriceFactorMode",
+                    "caption": "Price variable is given in",
+                    "width": "300px",
+                    "options": [
+                        {
+                            "caption": "Automatic (from the unit)",
+                            "value": 0
+                        },
+                        {
+                            "caption": "Main currency (e.g. 0.285 €/kWh)",
+                            "value": 1
+                        },
+                        {
+                            "caption": "Cents, 1/100 of the currency (e.g. 28.5 ct/kWh)",
+                            "value": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "name": "PriceFactorInfo",
+                    "caption": " "
                 },
                 {
                     "type": "Label",
@@ -357,7 +451,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Fixed price per kWh or unit in EUR"
+                    "caption": "Fixed price per kWh or unit"
                 },
                 {
                     "type": "NumberSpinner",
@@ -371,6 +465,31 @@
                     "name": "PriceVariableID2",
                     "caption": "Price variable (optional, replaces the fixed price)",
                     "width": "436px"
+                },
+                {
+                    "type": "Select",
+                    "name": "PriceFactorMode2",
+                    "caption": "Price variable is given in",
+                    "width": "300px",
+                    "options": [
+                        {
+                            "caption": "Automatic (from the unit)",
+                            "value": 0
+                        },
+                        {
+                            "caption": "Main currency (e.g. 0.285 €/kWh)",
+                            "value": 1
+                        },
+                        {
+                            "caption": "Cents, 1/100 of the currency (e.g. 28.5 ct/kWh)",
+                            "value": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "name": "PriceFactorInfo2",
+                    "caption": " "
                 },
                 {
                     "type": "Label",
@@ -574,7 +693,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Fixed price per kWh or unit in EUR"
+                    "caption": "Fixed price per kWh or unit"
                 },
                 {
                     "type": "NumberSpinner",
@@ -588,6 +707,31 @@
                     "name": "PriceVariableID3",
                     "caption": "Price variable (optional, replaces the fixed price)",
                     "width": "436px"
+                },
+                {
+                    "type": "Select",
+                    "name": "PriceFactorMode3",
+                    "caption": "Price variable is given in",
+                    "width": "300px",
+                    "options": [
+                        {
+                            "caption": "Automatic (from the unit)",
+                            "value": 0
+                        },
+                        {
+                            "caption": "Main currency (e.g. 0.285 €/kWh)",
+                            "value": 1
+                        },
+                        {
+                            "caption": "Cents, 1/100 of the currency (e.g. 28.5 ct/kWh)",
+                            "value": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "name": "PriceFactorInfo3",
+                    "caption": " "
                 },
                 {
                     "type": "Label",

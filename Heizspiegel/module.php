@@ -476,8 +476,11 @@ class Heizspiegel extends IPSModuleStrict
         $CostCategory = null;
         $PricePerKWh = null;
         if ($Price > 0) {
-            $CostPerM2 = $YearlyUnits * $Price / $Area + $WaterCost;
-            $CostCategory = $Row['cost'][0] > 0 ? $this->categoryOf($CostPerM2, $Row['cost']) : null;
+            // Die Kostenbereiche des Heizspiegels und der Zuschlag fürs Warmwasser gelten in Euro: In anderer Währung gibt es keinen Kostenvergleich
+            if (($Sources['CurrencyCode'] ?? 'EUR') === 'EUR') {
+                $CostPerM2 = $YearlyUnits * $Price / $Area + $WaterCost;
+                $CostCategory = $Row['cost'][0] > 0 ? $this->categoryOf($CostPerM2, $Row['cost']) : null;
+            }
             $PricePerKWh = $Price / $PerUnit;
         }
 
@@ -493,6 +496,7 @@ class Heizspiegel extends IPSModuleStrict
             'hotWaterAdd'  => $WaterKWh,
             'bounds'       => $Row['kwh'],
             'costBounds'   => $Row['cost'],
+            'currency'     => $Sources['Currency'] ?? '€',
             'costPerM2'    => $CostPerM2 === null ? null : round($CostPerM2, 2),
             'costCategory' => $CostCategory,
             'area'         => $Area,
@@ -632,11 +636,12 @@ class Heizspiegel extends IPSModuleStrict
     private function maintainVariables(): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $this->MaintainVariable('Category', $this->Translate('Category'), VARIABLETYPE_STRING, $Value, 1, true);
         $this->MaintainVariable('KWhPerM2', $this->Translate('Heating energy per m² and year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' kWh/m²', 'DIGITS' => 1], 2, true);
-        $this->MaintainVariable('CostPerM2', $this->Translate('Heating cost per m² and year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €/m²', 'DIGITS' => 2], 3, true);
+        $this->MaintainVariable('CostPerM2', $this->Translate('Heating cost per m² and year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency . '/m²', 'DIGITS' => 2], 3, true);
         $this->MaintainVariable('SavingKWh', $this->Translate('Saving potential to the next better category'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' kWh', 'DIGITS' => 0], 4, true);
-        $this->MaintainVariable('SavingCost', $this->Translate('Saving potential to the next better category in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 0], 5, true);
+        $this->MaintainVariable('SavingCost', $this->Translate('Saving potential to the next better category in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 0], 5, true);
         $this->MaintainVariable('Data', $this->Translate('Evaluation data'), VARIABLETYPE_STRING, $Value, 6, true);
         $this->hideVariable('Data');
     }

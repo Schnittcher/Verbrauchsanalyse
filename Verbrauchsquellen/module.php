@@ -19,6 +19,9 @@ class Verbrauchsquellen extends IPSModuleStrict
 
     private const STATUS_INVALID_CONFIGURATION = 201;
 
+    // Felder des Formulars, bei deren Änderung die Erkennungslabels neu berechnet werden
+    private const INFO_FIELDS = ['PriceVariableID', 'PriceVariableID2', 'PriceVariableID3', 'PriceFactorMode', 'PriceFactorMode2', 'PriceFactorMode3', 'Currency', 'CurrencyCustom', 'CurrencyFromPrice'];
+
     private const MAX_GROUP_DEPTH = 3;
 
     // Die Medien des Splitters: 1 Strom, 2 Wasser, 3 Gas, je mit eigener Einheit, Preis, Verbraucherliste und Gruppen.
@@ -49,11 +52,17 @@ class Verbrauchsquellen extends IPSModuleStrict
             $this->RegisterPropertyString('Unit' . $Suffix, self::MEDIUM_DEFAULTS[$Medium][0]);
             $this->RegisterPropertyFloat('PricePerUnit' . $Suffix, self::MEDIUM_DEFAULTS[$Medium][1]);
             $this->RegisterPropertyInteger('PriceVariableID' . $Suffix, 0);
+            // 0 automatisch aus dem Suffix der Preisvariable, 1 Preis in der Hauptwährung, 2 Preis in der Unterwährung (Cent)
+            $this->RegisterPropertyInteger('PriceFactorMode' . $Suffix, 0);
             $this->RegisterPropertyFloat('EmissionFactor' . $Suffix, self::MEDIUM_DEFAULTS[$Medium][2]);
             $this->RegisterPropertyInteger('EmissionVariableID' . $Suffix, 0);
             $this->RegisterPropertyString('Consumers' . $Suffix, '[]');
             $this->RegisterPropertyString('Groups' . $Suffix, '[]');
         }
+        // Währung für alle Medien: Auswahl (Code oder CUSTOM mit eigenem Symbol), auf Wunsch aus den Preisvariablen erkannt
+        $this->RegisterPropertyString('Currency', 'EUR');
+        $this->RegisterPropertyString('CurrencyCustom', '');
+        $this->RegisterPropertyBoolean('CurrencyFromPrice', false);
         $this->RegisterPropertyInteger('Residents', 0);
         $this->RegisterPropertyFloat('Area', 0.0);
         $this->RegisterPropertyBoolean('HotWaterElectric', false);
@@ -78,6 +87,10 @@ class Verbrauchsquellen extends IPSModuleStrict
                 $Errors[] = $Error;
             }
             $Empty = $Empty && $Config['Consumers'] === [] && $Config['MainMeter'] === 0 && $Config['Heating'] === null;
+        }
+        // Verschiedene Währungen in den Preisvariablen sind ein Fehler: Die Beträge ließen sich nicht zusammenrechnen
+        foreach ($this->currentCurrencyState()['Errors'] as $Error) {
+            $Errors[] = $Error;
         }
         $Errors = array_values(array_unique($Errors));
         if ($Errors !== []) {
@@ -116,6 +129,9 @@ class Verbrauchsquellen extends IPSModuleStrict
             case 'FindVariables3':
                 $this->findVariables((string) $Value, (int) substr($Ident, 13) ?: 1);
                 break;
+            case 'UpdateInfo':
+                $this->updateInfoFields((string) $Value);
+                break;
             default:
                 $this->SendDebug(__FUNCTION__, 'Unbekannte Aktion ' . $Ident, 0);
                 break;
@@ -127,6 +143,16 @@ class Verbrauchsquellen extends IPSModuleStrict
         $Form = json_decode((string) file_get_contents(__DIR__ . '/form.json'), true);
         if (!is_array($Form)) {
             return '{}';
+        }
+
+        // Erkennung als Label und Neuberechnung bei Änderung der betroffenen Felder
+        $Input = $this->formInput();
+        foreach ($this->infoTexts($Input) as $Name => $Text) {
+            $this->setElementProperty($Form['elements'], $Name, 'caption', $Text);
+        }
+        $this->setElementProperty($Form['elements'], 'CurrencyCustom', 'visible', $Input['C'] === 'CUSTOM');
+        foreach (self::INFO_FIELDS as $Name) {
+            $this->setElementProperty($Form['elements'], $Name, 'onChange', "IPS_RequestAction(\$id, 'UpdateInfo', json_encode(['P1' => \$PriceVariableID, 'P2' => \$PriceVariableID2, 'P3' => \$PriceVariableID3, 'M1' => \$PriceFactorMode, 'M2' => \$PriceFactorMode2, 'M3' => \$PriceFactorMode3, 'C' => \$Currency, 'Custom' => \$CurrencyCustom, 'Auto' => \$CurrencyFromPrice]));");
         }
 
         foreach (self::MEDIA as $Medium) {
@@ -148,7 +174,7 @@ class Verbrauchsquellen extends IPSModuleStrict
     // ---------------------------------------------------------------- Konfiguration
 
     /**
-     * Die Konfiguration, wie sie die Kinder bekommen. Gruppen und Verbraucher als Listen, Preis in EUR je Einheit.
+     * Die Konfiguration, wie sie die Kinder bekommen. Gruppen und Verbraucher als Listen, Preis in der Hauptwährung je Einheit.
      */
     private function exportConfiguration(int $Medium): array
     {
@@ -163,6 +189,9 @@ class Verbrauchsquellen extends IPSModuleStrict
             'Consumers'        => array_values($Config['Consumers']),
             'MainMeter'        => $Config['MainMeter'],
             'PriceID'          => $Config['PriceID'],
+            'PriceFactorMode'  => $this->ReadPropertyInteger('PriceFactorMode' . $this->suffix($Medium)),
+            'Currency'         => $this->currentCurrencyState()['Symbol'],
+            'CurrencyCode'     => $this->currentCurrencyState()['Code'],
             'FixedPrice'       => $this->ReadPropertyFloat('PricePerUnit' . $this->suffix($Medium)),
             'PriceNow'         => $this->currentPrice($Config['PriceID'], $Medium),
             'EmissionFactor'   => $this->ReadPropertyFloat('EmissionFactor' . $this->suffix($Medium)),
@@ -197,6 +226,9 @@ class Verbrauchsquellen extends IPSModuleStrict
             'Consumers'        => [],
             'MainMeter'        => $Heating !== null ? (int) $Heating['ID'] : 0,
             'PriceID'          => 0,
+            'PriceFactorMode'  => 0,
+            'Currency'         => $this->currentCurrencyState()['Symbol'],
+            'CurrencyCode'     => $this->currentCurrencyState()['Code'],
             'FixedPrice'       => $Heating !== null ? (float) $Heating['Price'] : 0.0,
             'PriceNow'         => $Heating !== null ? (float) $Heating['Price'] : 0.0,
             'EmissionFactor'   => $Factor,
@@ -211,14 +243,153 @@ class Verbrauchsquellen extends IPSModuleStrict
     }
 
     /**
-     * Aktueller Preis in EUR je Einheit: Wert der Preisvariable (ct werden umgerechnet), sonst der feste Preis.
+     * Aktueller Preis je Einheit in der Hauptwährung: Wert der Preisvariable (Cent und Ähnliches werden umgerechnet), sonst der feste Preis.
      */
     private function currentPrice(int $PriceID, int $Medium): float
     {
         if ($PriceID <= 0 || !IPS_VariableExists($PriceID)) {
             return $this->ReadPropertyFloat('PricePerUnit' . $this->suffix($Medium));
         }
-        return (float) GetValue($PriceID) * $this->priceFactor($PriceID);
+        return (float) GetValue($PriceID) * $this->priceFactor($PriceID, $this->ReadPropertyInteger('PriceFactorMode' . $this->suffix($Medium)));
+    }
+
+    // ---------------------------------------------------------------- Währung
+
+    /**
+     * Die Währung nach den Einstellungen der Instanz, siehe currencyState().
+     */
+    private function currentCurrencyState(): array
+    {
+        $Input = $this->formInput();
+        return $this->currencyState($Input['P'], $Input['C'], $Input['Custom'], $Input['Auto']);
+    }
+
+    /**
+     * Preisvariablen, Faktor-Modus und Währungsauswahl, wie sie im Formular stehen (aus den Eigenschaften).
+     */
+    private function formInput(): array
+    {
+        $Input = ['P' => [], 'M' => [], 'C' => $this->ReadPropertyString('Currency'), 'Custom' => $this->ReadPropertyString('CurrencyCustom'), 'Auto' => $this->ReadPropertyBoolean('CurrencyFromPrice')];
+        foreach (self::MEDIA as $Medium) {
+            $Input['P'][$Medium] = $this->ReadPropertyInteger('PriceVariableID' . $this->suffix($Medium));
+            $Input['M'][$Medium] = $this->ReadPropertyInteger('PriceFactorMode' . $this->suffix($Medium));
+        }
+        return $Input;
+    }
+
+    /**
+     * Welche Währung gilt. Die Auswahl ist immer die Grundlage. Mit dem Haken gilt stattdessen die Währung aus den Preisvariablen,
+     * wenn sie eindeutig ist. Erkennen die Preisvariablen verschiedene Währungen, ist das ein Fehler (Errors).
+     *
+     * @param array<int, int> $PriceIDs Preisvariable je Medium
+     */
+    private function currencyState(array $PriceIDs, string $Selection, string $Custom, bool $FromPrice): array
+    {
+        $Detected = [];
+        foreach ($PriceIDs as $ID) {
+            $Code = $this->detectPriceUnit((int) $ID)['Currency'];
+            if ($Code !== null) {
+                $Detected[$Code] = true;
+            }
+        }
+        $Detected = array_keys($Detected);
+
+        $Errors = [];
+        $Custom = trim($Custom);
+        if ($Selection === 'CUSTOM') {
+            $Selected = $Custom;
+            if ($Custom === '') {
+                $Errors[] = 'Das eigene Währungssymbol fehlt';
+            }
+        } else {
+            $Selected = isset(self::CURRENCIES[$Selection]) ? $Selection : 'EUR';
+        }
+        if (count($Detected) > 1) {
+            $Errors[] = 'Die Preisvariablen haben verschiedene Währungen: ' . implode(', ', $Detected);
+        }
+
+        $FromVariable = $FromPrice && count($Detected) === 1;
+        $Code = $FromVariable ? $Detected[0] : $Selected;
+        $Code = $Code === '' ? 'EUR' : $Code;
+        return ['Code' => $Code, 'Symbol' => $this->currencySymbol($Code), 'Selected' => $Selected, 'Detected' => $Detected, 'FromVariable' => $FromVariable, 'Errors' => $Errors];
+    }
+
+    /**
+     * Die Texte der Erkennungslabels im Formular: Währung und je Medium der Faktor der Preisvariable.
+     */
+    private function infoTexts(array $Input): array
+    {
+        $State = $this->currencyState($Input['P'], $Input['C'], $Input['Custom'], $Input['Auto']);
+        $Symbol = $State['Symbol'];
+        if (count($State['Detected']) > 1) {
+            $Currency = sprintf($this->Translate('Price variables use different currencies (%s). Use the same currency for all of them.'), implode(', ', $State['Detected']));
+        } elseif ($State['FromVariable']) {
+            $Currency = sprintf($this->Translate('Detected from the price variable: %s'), $Symbol);
+        } elseif ($Input['Auto']) {
+            $Currency = sprintf($this->Translate('Currency not clear from the price variables, using the selection: %s'), $Symbol);
+        } elseif ($State['Detected'] !== [] && $State['Detected'][0] !== $State['Selected']) {
+            $Currency = sprintf($this->Translate('Currency: %s. Note: the price variable shows %s.'), $Symbol, $this->currencySymbol($State['Detected'][0]));
+        } else {
+            $Currency = sprintf($this->Translate('Currency: %s'), $Symbol);
+        }
+
+        $Texts = ['CurrencyInfo' => $Currency];
+        foreach (self::MEDIA as $Medium) {
+            $ID = (int) $Input['P'][$Medium];
+            $Mode = (int) $Input['M'][$Medium];
+            $Name = 'PriceFactorInfo' . $this->suffix($Medium);
+            if ($ID <= 0 || !IPS_VariableExists($ID)) {
+                $Texts[$Name] = $this->Translate('No price variable, the fixed price is used.');
+                continue;
+            }
+            $Detect = $this->detectPriceUnit($ID);
+            $Suffix = $Detect['Suffix'] !== '' ? $Detect['Suffix'] : '-';
+            if ($Mode === 1) {
+                $Texts[$Name] = $this->Translate('Set manually: the price is used as it is.');
+            } elseif ($Mode === 2) {
+                $Texts[$Name] = $this->Translate('Set manually: the price is divided by 100.');
+            } elseif ($Detect['Sub'] === true) {
+                $Texts[$Name] = sprintf($this->Translate('Detected: %s, the price is divided by 100.'), $Suffix);
+            } elseif ($Detect['Sub'] === false) {
+                $Texts[$Name] = sprintf($this->Translate('Detected: %s, the price is used as it is.'), $Suffix);
+            } else {
+                $Texts[$Name] = sprintf($this->Translate('Not clear (%s), the price is used as it is. Set the factor manually if it is in cents.'), $Suffix);
+            }
+        }
+        return $Texts;
+    }
+
+    /**
+     * Berechnet die Erkennungslabels neu. Der Wert ist das JSON mit den aktuellen Formularwerten (noch nicht gespeichert).
+     */
+    private function updateInfoFields(string $Json): void
+    {
+        $Data = json_decode($Json, true);
+        if (!is_array($Data)) {
+            return;
+        }
+        $Input = [
+            'P'      => [1 => (int) ($Data['P1'] ?? 0), 2 => (int) ($Data['P2'] ?? 0), 3 => (int) ($Data['P3'] ?? 0)],
+            'M'      => [1 => (int) ($Data['M1'] ?? 0), 2 => (int) ($Data['M2'] ?? 0), 3 => (int) ($Data['M3'] ?? 0)],
+            'C'      => (string) ($Data['C'] ?? 'EUR'),
+            'Custom' => (string) ($Data['Custom'] ?? ''),
+            'Auto'   => (bool) ($Data['Auto'] ?? false)
+        ];
+        foreach ($this->infoTexts($Input) as $Name => $Text) {
+            $this->UpdateFormField($Name, 'caption', $Text);
+        }
+        $this->UpdateFormField('CurrencyCustom', 'visible', $Input['C'] === 'CUSTOM');
+    }
+
+    private function setElementProperty(array &$Elements, string $Name, string $Key, mixed $Value): void
+    {
+        foreach ($Elements as &$Element) {
+            if (($Element['name'] ?? '') === $Name) {
+                $Element[$Key] = $Value;
+            } elseif (isset($Element['items'])) {
+                $this->setElementProperty($Element['items'], $Name, $Key, $Value);
+            }
+        }
     }
 
     /**

@@ -37,7 +37,7 @@ Darunter stehen Gesamtverbrauch, Kosten und das Diagramm. Beim Überfahren oder 
 
 Rechnung: Der Gesamtverbrauch ist der Hauptzähler, ohne ihn die Summe der obersten Ebene. Gruppen mit Gruppenzähler zeigen dessen Wert und die Differenz zu den Mitgliedern als "Rest der Gruppe", wie in Top Verbraucher. Die Kosten rechnen je Stunde mit der Preisvariable, sonst mit dem festen Preis.
 
-**Live:** Die Live-Ansicht zeigt Leistung in W (bei Volumen l/h), Kosten in €/h:
+**Live:** Die Live-Ansicht zeigt Leistung in W (bei Volumen l/h), Kosten je Stunde in der Währung der Verbrauchsquellen (zum Beispiel €/h):
 * Leistungsvariablen (W, kW) zählen mit ihrem aktuellen Wert.
 * Zähler (kWh, Wh, m³ und so weiter) zählen mit der mittleren Leistung der letzten halben Stunde, bei zu wenigen Werten der letzten zwei Stunden. Ein Zähler, der in dieser Zeit nichts meldet, zeigt 0.
 * Meldet ein Gruppenzähler weniger als seine Geräte zusammen, gilt die Summe der Geräte.

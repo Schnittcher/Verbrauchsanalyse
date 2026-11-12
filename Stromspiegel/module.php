@@ -364,6 +364,7 @@ class Stromspiegel extends IPSModuleStrict
             'costToNext' => round($ToNext * $Price, 0),
             'costToA'    => round($ToA * $Price, 0),
             'price'      => $Price,
+            'currency'   => $Sources['Currency'] ?? '€',
             'position'   => round($this->position($Yearly, $Bounds), 4)
         ];
     }
@@ -539,11 +540,12 @@ class Stromspiegel extends IPSModuleStrict
     private function maintainVariables(): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $this->MaintainVariable('Class', $this->Translate('Class'), VARIABLETYPE_STRING, $Value, 1, true);
         $this->MaintainVariable('YearKWh', $this->Translate('Consumption per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' kWh', 'DIGITS' => 0], 2, true);
         $this->MaintainVariable('PerPerson', $this->Translate('Consumption per person'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' kWh', 'DIGITS' => 0], 3, true);
         $this->MaintainVariable('SavingToA', $this->Translate('Saving potential to class A'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' kWh', 'DIGITS' => 0], 4, true);
-        $this->MaintainVariable('SavingToACost', $this->Translate('Saving potential to class A in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 0], 5, true);
+        $this->MaintainVariable('SavingToACost', $this->Translate('Saving potential to class A in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 0], 5, true);
         $this->MaintainVariable('Data', $this->Translate('Evaluation data'), VARIABLETYPE_STRING, $Value, 6, true);
         $this->hideVariable('Data');
     }

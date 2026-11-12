@@ -9,7 +9,7 @@
         {
             "type": "NumberSpinner",
             "name": "OverridePrice",
-            "caption": "Price per unit in EUR",
+            "caption": "Price per unit",
             "digits": 4,
             "minimum": 0,
             "width": "220px"

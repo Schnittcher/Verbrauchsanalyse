@@ -26,7 +26,7 @@ Altes Gerät: mittlere Leistung im Betrieb (gilt ohne Archivdaten) | Alternative
 Betriebsstunden pro Tag | Wie lange das Gerät am Tag läuft, 24 für Dauerläufer wie einen Kühlschrank. Gilt für die Angabe in Watt beim alten und beim neuen Gerät.
 Neues Gerät: Energielabel (kWh pro Jahr, 0 = die Leistung darunter nutzen) | Jahresverbrauch laut Energielabel. Ist er größer als 0, hat er Vorrang.
 Neues Gerät: mittlere Leistung im Betrieb | Alternativ die mittlere Leistung in Watt, mal die Betriebsstunden.
-Anschaffungspreis | Preis des neuen Geräts in EUR.
+Anschaffungspreis | Preis des neuen Geräts in der Währung der [Verbrauchsquellen](../Verbrauchsquellen/README.md).
 Erwartete Lebensdauer | In Jahren. Standard: 12.
 Erwartete Preissteigerung pro Jahr | Jährliche Steigerung des Strompreises in Prozent. Standard: 0.
 Aktualisierungsintervall | Abstand der Neuberechnung in Minuten. Standard: 360.
@@ -44,9 +44,9 @@ Variable | Ident | Typ | Beschreibung
 Altes Gerät pro Jahr | `OldKWhYear` | Kommazahl (kWh) | Verbrauch des alten Geräts.
 Neues Gerät pro Jahr | `NewKWhYear` | Kommazahl (kWh) | Verbrauch des neuen Geräts.
 Einsparung pro Jahr | `SavingKWhYear` | Kommazahl (kWh) | Negativ, wenn das neue Gerät mehr verbraucht.
-Einsparung pro Jahr in Geld | `SavingCostYear` | Kommazahl (€) | Einsparung mal Strompreis.
+Einsparung pro Jahr in Geld | `SavingCostYear` | Kommazahl (Währung) | Einsparung mal Strompreis.
 Amortisationszeit | `PaybackYears` | Kommazahl (Jahre) | 0, wenn es nie amortisiert.
-Gewinn über die Lebensdauer | `NetLifetime` | Kommazahl (€) | Negativ = Verlust.
+Gewinn über die Lebensdauer | `NetLifetime` | Kommazahl (Währung) | Negativ = Verlust.
 Ergebnis | `Verdict` | Text | "Lohnt sich" oder "Lohnt sich nicht" mit Zahlen.
 
 Alle Variablen sind schreibgeschützt und werden vom Modul berechnet.

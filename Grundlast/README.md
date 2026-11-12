@@ -44,7 +44,7 @@ Variable | Ident | Typ | Beschreibung
 Grundlast | `BaseLoad` | Kommazahl | Median der Nächte in Watt.
 Letzte Nacht | `LastNight` | Kommazahl | Mittlere Leistung der jüngsten Nacht in Watt.
 Grundlast pro Jahr | `YearKWh` | Kommazahl | Hochrechnung in kWh.
-Grundlast-Kosten pro Jahr | `YearCost` | Kommazahl | Hochrechnung in EUR.
+Grundlast-Kosten pro Jahr | `YearCost` | Kommazahl | Hochrechnung in der Währung der Verbrauchsquellen.
 Anteil am Verbrauch | `Share` | Kommazahl | Grundlast im Verhältnis zum durchschnittlichen Tagesverbrauch der ausgewerteten Tage in Prozent.
 Standby-Rangliste | `Standby` | Text | Geräte nach Grundlast absteigend, zum Beispiel "Haus 50.0 W; Kühlschrank 20.0 W".
 Leistung bei Abwesenheit | `AbsenceLoad` | Kommazahl | Median der Leistung in den abwesenden Stunden in Watt. Nur mit Abwesenheitsvariable.

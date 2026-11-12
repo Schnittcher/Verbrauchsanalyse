@@ -1,5 +1,14 @@
 # Changelog
 
+## 12.11.2026 - Version 1.0.2
+
+### Neu
+- Verbrauchsquellen: Die Währung ist wählbar (Euro, Franken, Pfund, Dollar, Kronen, Zloty oder eigenes Symbol) und gilt für alle Auswertungen: Variablen, Kacheln, Bericht, CSV und PDF zeigen sie statt des festen Euro. Achtung: Bestehende Installationen bleiben bei Euro.
+- Verbrauchsquellen: Auf Wunsch wird die Währung aus der Einheit der Preisvariable übernommen, wenn sie eindeutig ist. Das Formular zeigt, was erkannt wurde.
+- Verbrauchsquellen: Je Preisvariable lässt sich einstellen, ob der Preis in Cent (1/100 der Währung) vorliegt. "Automatisch" erkennt außer ct auch Cent, p, Rp, øre und ¢, das Formular zeigt die Erkennung.
+- Verbrauchsquellen: Haben die Preisvariablen verschiedene Währungen, meldet die Instanz einen Fehler, weil Beträge nicht umgerechnet werden.
+- Heizspiegel: Bei einer anderen Währung als Euro entfallen die Heizkosten je m² und ihre Kostenkategorie, weil die Kostenbereiche des deutschen Heizspiegels in Euro gelten.
+
 ## 26.10.2026 - Version 1.0.1
 
 ### Neu

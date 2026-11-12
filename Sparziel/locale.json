@@ -50,7 +50,7 @@
             "Gas": "Gas",
             "Heating": "Heizung",
             "Override values of the Consumption sources": "Werte der Verbrauchsquellen überschreiben",
-            "Price per unit in EUR": "Preis je Einheit in EUR",
+            "Price per unit": "Preis je Einheit",
             "Price variable (optional)": "Preisvariable (optional)"
         }
     }

@@ -38,7 +38,7 @@ Leck vermutet | `Leak` | Ja/Nein | true, wenn der Dauerfluss mindestens die eing
 Dauerfluss | `ContinuousHours` | Ganzzahl (h) | Ununterbrochene Stunden mit Fluss.
 Mindestfluss (24 Stunden) | `MinFlow` | Kommazahl (l/h) | Kleinste Stundenmenge der letzten 24 Stunden. Ein Wert über der Schwelle heißt: Es fließt ständig etwas.
 Geschätzter Verlust pro Jahr | `LossYear` | Kommazahl (m³) | Hochrechnung aus dem Dauerfluss.
-Geschätzte Verlustkosten pro Jahr | `LossCostYear` | Kommazahl (€) | Hochrechnung mit dem Preis der Verbrauchsquellen.
+Geschätzte Verlustkosten pro Jahr | `LossCostYear` | Kommazahl (Währung) | Hochrechnung mit dem Preis der Verbrauchsquellen.
 Ergebnis | `Message` | Text | Kurzer Satz, zum Beispiel "Dauerfluss seit 12 Stunden, mindestens 3.0 l/h".
 
 Alle Variablen sind schreibgeschützt und werden vom Modul berechnet. Zusätzlich gibt es die versteckte Textvariable `Data` mit den Daten der Kachel.

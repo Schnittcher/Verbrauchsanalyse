@@ -188,6 +188,7 @@ class Leckagewaechter extends IPSModuleStrict
             'minFlow'    => round($MinFlow, 1),
             'lossYear'   => round($LossYear, 1),
             'lossCost'   => round($LossYear * (float) $Sources['PriceNow'], 2),
+            'currency'   => $Sources['Currency'] ?? '€',
             'threshold'  => $Threshold,
             'alarmHours' => $this->ReadPropertyInteger('AlarmHours'),
             'sourceId'   => $ID,
@@ -231,6 +232,7 @@ class Leckagewaechter extends IPSModuleStrict
     private function maintainVariables(): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $Leak = $Value + [
             'OPTIONS' => json_encode([
                 ['Caption' => $this->Translate('OK'), 'ColorActive' => true, 'ColorValue' => 65280, 'ContentColorActive' => false, 'ContentColorValue' => -1, 'IconActive' => false, 'IconValue' => '', 'Value' => false],
@@ -241,7 +243,7 @@ class Leckagewaechter extends IPSModuleStrict
         $this->MaintainVariable('ContinuousHours', $this->Translate('Continuous flow'), VARIABLETYPE_INTEGER, $Value + ['SUFFIX' => ' h'], 2, true);
         $this->MaintainVariable('MinFlow', $this->Translate('Minimum flow (24 hours)'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' l/h', 'DIGITS' => 1], 3, true);
         $this->MaintainVariable('LossYear', $this->Translate('Estimated loss per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' m³', 'DIGITS' => 1], 4, true);
-        $this->MaintainVariable('LossCostYear', $this->Translate('Estimated loss cost per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 2], 5, true);
+        $this->MaintainVariable('LossCostYear', $this->Translate('Estimated loss cost per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 2], 5, true);
         $this->MaintainVariable('Message', $this->Translate('Result'), VARIABLETYPE_STRING, $Value, 6, true);
         $this->MaintainVariable('Data', $this->Translate('Evaluation data'), VARIABLETYPE_STRING, $Value, 7, true);
         $this->hideVariable('Data');

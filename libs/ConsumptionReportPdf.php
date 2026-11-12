@@ -85,7 +85,7 @@ class ConsumptionReportPdf
         // Kennzahlen
         $Cards = [[$this->t('Total consumption'), $Num($D['total'], 2) . ' ' . $Unit, '', $Ink]];
         if ($WithCost) {
-            $Cards[] = [$this->t('Cost'), $Num($D['cost'], 2) . ' ' . "\xE2\x82\xAC", '', $Ink];
+            $Cards[] = [$this->t('Cost'), $Num($D['cost'], 2) . ' ' . ($D['currency'] ?? "\xE2\x82\xAC"), '', $Ink];
         }
         if ($D['co2'] !== null) {
             $Cards[] = [$this->t('CO2'), $Num($D['co2'], 1) . ' kg', '', $Ink];
@@ -284,7 +284,7 @@ class ConsumptionReportPdf
                 $Pdf->text($Columns[1], $Y, $Num($Row['value'], 2) . ' ' . $Unit, 9, false, 'R');
                 $Pdf->text($Columns[2], $Y, $Num($Row['share'], 0) . ' %', 9, false, 'R');
                 if ($WithCost) {
-                    $Pdf->text($Columns[3], $Y, $Num($Row['cost'], 2) . ' ' . "\xE2\x82\xAC", 9, false, 'R');
+                    $Pdf->text($Columns[3], $Y, $Num($Row['cost'], 2) . ' ' . ($D['currency'] ?? "\xE2\x82\xAC"), 9, false, 'R');
                 }
                 if ($Row['previous'] !== null && $Row['previous'] > 0) {
                     $Change = ($Row['value'] - $Row['previous']) / $Row['previous'] * 100;

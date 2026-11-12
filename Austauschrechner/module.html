@@ -296,7 +296,7 @@
             ['RuntimeHours', 'h', 'any'],
             ['NewKWhYear', 'kWh', 'any'],
             ['NewWatt', 'W', 'any'],
-            ['PurchasePrice', '€', 'any'],
+            ['PurchasePrice', '#currency', 'any'],
             ['Lifetime', '', '1'],
             ['PriceIncrease', '%', 'any']
         ];
@@ -354,7 +354,7 @@
                     return;
                 }
                 var wrap = el('div', 'aus-field');
-                wrap.appendChild(el('label', '', texts[key] + (field[1] ? ' (' + field[1] + ')' : '')));
+                wrap.appendChild(el('label', '', texts[key] + (field[1] ? ' (' + (field[1] === '#currency' ? (state.currency || '€') : field[1]) + ')' : '')));
                 var input = el('input');
                 input.type = 'number';
                 input.step = field[2];
@@ -401,7 +401,7 @@
             var text = el('div', 'aus-text');
             text.appendChild(el('div', 'aus-title', !result ? texts.incomplete : texts[result.state]));
             if (result && result.state !== 'none') {
-                text.appendChild(el('div', 'aus-sub', fmt(result.yearly, 2) + ' € / ' + texts.years + ' · ' + texts.gain + ' ' + fmt(result.net, 0) + ' €'));
+                text.appendChild(el('div', 'aus-sub', fmt(result.yearly, 2) + ' ' + (state.currency || '€') + ' / ' + texts.years + ' · ' + texts.gain + ' ' + fmt(result.net, 0) + ' ' + (state.currency || '€')));
             }
             hero.appendChild(text);
             if (result && result.state !== 'none') {
@@ -438,7 +438,7 @@
                 var cards = el('div', 'aus-cards');
                 cards.appendChild(card(texts.old, fmt(result.old, 0) + ' kWh', state.fromArchive ? texts.fromArchive : null));
                 cards.appendChild(card(texts.new, fmt(result.new, 0) + ' kWh', null));
-                cards.appendChild(card(texts.savingYear, fmt(result.yearly, 2) + ' €', fmt(result.saving, 0) + ' kWh', result.yearly > 0 ? 'aus-good' : 'aus-bad'));
+                cards.appendChild(card(texts.savingYear, fmt(result.yearly, 2) + ' ' + (state.currency || '€'), fmt(result.saving, 0) + ' kWh', result.yearly > 0 ? 'aus-good' : 'aus-bad'));
                 root.appendChild(cards);
             }
 

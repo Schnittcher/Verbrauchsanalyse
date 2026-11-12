@@ -301,7 +301,7 @@ class Verbrauchsfluss extends IPSModuleStrict
         if ($Config['PriceID'] > 0 && $Config['MainMeter'] > 0) {
             $Info = $this->unitInfoFor($Config['MainMeter'], $Config['Unit']);
             if ($Info['Family'] === $Config['Unit']['Family']) {
-                $Cost = $this->hourlyPriceCost($ArchiveID, $Config['PriceID'], $Config['MainMeter'], $Info, $Range['start'], $Range['end']);
+                $Cost = $this->hourlyPriceCost($ArchiveID, $Config['PriceID'], $Config['MainMeter'], $Info, $Range['start'], $Range['end'], (int) ($Config['PriceFactorMode'] ?? 0));
             }
         }
         $Cost ??= $Total * (float) $Config['FixedPrice'];
@@ -323,6 +323,7 @@ class Verbrauchsfluss extends IPSModuleStrict
             'unit'         => $Config['Unit']['Out'],
             'total'        => round($Total, 3),
             'cost'         => round($Cost, 2),
+            'currency'     => $Config['Currency'],
             'nodes'        => $Flow['nodes'],
             'links'        => $Flow['links'],
             'updated'      => time()
@@ -379,7 +380,8 @@ class Verbrauchsfluss extends IPSModuleStrict
             'period'   => self::PERIOD_LIVE,
             'live'     => true,
             'unit'     => $Config['Unit']['Family'] === 'energy' ? 'W' : 'l/h',
-            'costUnit' => '€/h',
+            'costUnit' => $Config['Currency'] . '/h',
+            'currency' => $Config['Currency'],
             'total'    => round($Total, 1),
             'cost'     => round($Total * $PricePerUnit, 3),
             'nodes'    => $Flow['nodes'],

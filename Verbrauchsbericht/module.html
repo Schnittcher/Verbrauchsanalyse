@@ -716,14 +716,14 @@
                 var item = el('div', 'vbr-item' + (row.level > 0 ? ' sub' : '') + (row.type === 'group' ? ' group' : ''));
                 var lines = [row.name, fmt(row.value, 2) + ' ' + report.unit + ' (' + fmt(row.share, 0) + ' %)'];
                 if (withCost) {
-                    lines.push(fmt(row.cost, 2) + ' €');
+                    lines.push(fmt(row.cost, 2) + ' ' + (report.currency || '€'));
                 }
                 if (row.change !== null) {
                     lines.push(signed(row.change));
                 }
                 hint(item, lines);
                 item.appendChild(el('span', 'vbr-name vbr-grow', row.name));
-                item.appendChild(el('span', 'vbr-num', fmt(row.value, 2) + ' ' + report.unit + (withCost ? ' · ' + fmt(row.cost, 2) + ' €' : '')));
+                item.appendChild(el('span', 'vbr-num', fmt(row.value, 2) + ' ' + report.unit + (withCost ? ' · ' + fmt(row.cost, 2) + ' ' + (report.currency || '€') : '')));
                 var change = el('span', 'vbr-num vbr-change' + (row.change === null ? '' : (row.change > 0 ? ' bad' : ' good')), row.change === null ? '' : signed(row.change));
                 item.appendChild(change);
                 var bar = el('div', 'vbr-bar');
@@ -754,7 +754,7 @@
             var cards = el('div', 'vbr-cards');
             cards.appendChild(card(texts.total, fmt(report.total, 2) + ' ' + report.unit));
             if (options.IncludeCost) {
-                cards.appendChild(card(texts.cost, fmt(report.cost, 2) + ' €'));
+                cards.appendChild(card(texts.cost, fmt(report.cost, 2) + ' ' + (report.currency || '€')));
             }
             if (report.co2 !== null && report.co2 !== undefined) {
                 cards.appendChild(card(texts.co2, fmt(report.co2, 1) + ' kg'));

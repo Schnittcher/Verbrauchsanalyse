@@ -439,11 +439,11 @@
             cards.appendChild(card(texts.perM2, fmt(data.perM2, 1) + ' kWh', fmt(data.yearlyKWh, 0) + ' kWh ' + texts.perYear));
             if (data.costPerM2 !== null) {
                 var costNote = data.costCategory !== null ? texts.category[data.costCategory] : '';
-                cards.appendChild(card(texts.costPerM2, fmt(data.costPerM2, 2) + ' €', costNote));
+                cards.appendChild(card(texts.costPerM2, fmt(data.costPerM2, 2) + ' ' + (data.currency || '€'), costNote));
             }
             if (data.category > 0) {
                 var saving = fmt(data.toNextKWh, 0) + ' kWh';
-                cards.appendChild(card(texts.toNext, saving, data.toNextCost !== null ? texts.saving + ' ' + fmt(data.toNextCost, 0) + ' € ' + texts.perYear : ''));
+                cards.appendChild(card(texts.toNext, saving, data.toNextCost !== null ? texts.saving + ' ' + fmt(data.toNextCost, 0) + ' ' + (data.currency || '€') + ' ' + texts.perYear : ''));
             }
             root.appendChild(cards);
 

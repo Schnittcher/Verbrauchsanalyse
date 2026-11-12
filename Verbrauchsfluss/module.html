@@ -386,7 +386,7 @@
             var linesFor = function (node) {
                 var lines = [node.name, fmt(node.value, data.live ? 0 : (digits === 0 ? 1 : digits)) + ' ' + data.unit + ' (' + share(node.value) + ')'];
                 if (state.showCost) {
-                    lines.push(fmt(node.cost, data.live ? 3 : 2) + ' ' + (data.live ? data.costUnit : '€'));
+                    lines.push(fmt(node.cost, data.live ? 3 : 2) + ' ' + (data.live ? data.costUnit : (data.currency || '€')));
                 }
                 if (state.clickOpen && node.objectId > 0 && typeof openObject === 'function') {
                     lines.push(state.texts.openHint);
@@ -520,7 +520,7 @@
             var summary = el('div', 'vfl-summary');
             summary.appendChild(el('span', 'vfl-big', fmt(data.total, data.live ? 0 : 2) + ' ' + data.unit));
             if (state.showCost) {
-                summary.appendChild(el('span', 'vfl-big', fmt(data.cost, data.live ? 3 : 2) + ' ' + (data.live ? data.costUnit : '€')));
+                summary.appendChild(el('span', 'vfl-big', fmt(data.cost, data.live ? 3 : 2) + ' ' + (data.live ? data.costUnit : (data.currency || '€'))));
             }
             summary.appendChild(el('span', 'vfl-label', data.label + (data.live ? ' · ' + texts.liveNote : '')));
             root.appendChild(summary);

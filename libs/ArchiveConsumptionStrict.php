@@ -26,6 +26,24 @@ trait ArchiveConsumption
      */
     private const MEDIUM_HEATING = 4;
 
+    // Währungen zur Auswahl: Code => Anzeigetext (Suffix der Variablen)
+    private const CURRENCIES = ['EUR' => '€', 'CHF' => 'CHF', 'GBP' => '£', 'USD' => '$', 'SEK' => 'SEK', 'NOK' => 'NOK', 'DKK' => 'DKK', 'PLN' => 'PLN', 'CZK' => 'CZK'];
+
+    // Suffix einer Preisvariable (vor dem "/", klein geschrieben, ohne Punkt) => [Währung oder null, Unterwährung]
+    // Null als Währung heißt: aus dem Suffix nicht eindeutig ($ gilt für mehrere Länder, kr für drei).
+    private const PRICE_UNITS = [
+        '€'      => ['EUR', false], 'eur' => ['EUR', false], 'euro' => ['EUR', false],
+        'ct'     => ['EUR', true], 'cent' => ['EUR', true], 'cents' => ['EUR', true],
+        'chf'    => ['CHF', false], 'fr' => ['CHF', false], 'rp' => ['CHF', true], 'rappen' => ['CHF', true],
+        '£'      => ['GBP', false], 'gbp' => ['GBP', false], 'p' => ['GBP', true], 'pence' => ['GBP', true],
+        'usd'    => ['USD', false], '¢' => ['USD', true],
+        '$'      => [null, false], 'kr' => [null, false], 'c' => [null, true],
+        'øre'    => [null, true], 'öre' => [null, true], 'ore' => [null, true],
+        'sek'    => ['SEK', false], 'nok' => ['NOK', false], 'dkk' => ['DKK', false],
+        'pln'    => ['PLN', false], 'zł' => ['PLN', false], 'zl' => ['PLN', false], 'gr' => ['PLN', true],
+        'czk'    => ['CZK', false], 'kč' => ['CZK', false]
+    ];
+
     private function getArchiveID(): int
     {
         $IDs = IPS_GetInstanceListByModuleID(self::ARCHIVE_MODULE_ID);
@@ -53,12 +71,45 @@ trait ArchiveConsumption
     }
 
     /**
-     * Faktor zu EUR für eine Preisvariable: 0,01, wenn der Preis in ct angegeben ist, sonst 1.
+     * Währung und Unterwährung einer Preisvariable aus dem Suffix ihrer Darstellung, zum Beispiel "ct/kWh" oder "CHF/kWh".
+     * Currency ist der Code, null wenn nicht eindeutig. Sub ist true bei Cent, Pence, Øre und ähnlichem, null wenn nicht erkennbar.
      */
-    private function priceFactor(int $PriceID): float
+    private function detectPriceUnit(int $PriceID): array
     {
-        $Unit = mb_strtolower($this->getUnit($PriceID));
-        return (str_contains($Unit, 'ct') || str_contains($Unit, 'cent')) ? 0.01 : 1.0;
+        $Suffix = $PriceID > 0 && IPS_VariableExists($PriceID) ? $this->getUnit($PriceID) : '';
+        $Token = trim(explode('/', mb_strtolower($Suffix))[0]);
+        $Token = trim(rtrim($Token, '.'));
+        if ($Token !== '' && isset(self::PRICE_UNITS[$Token])) {
+            return ['Currency' => self::PRICE_UNITS[$Token][0], 'Sub' => self::PRICE_UNITS[$Token][1], 'Suffix' => $Suffix];
+        }
+        // Wie bisher: enthält die Einheit ct oder cent, gilt der Preis in Cent
+        if (str_contains(mb_strtolower($Suffix), 'cent') || str_contains(mb_strtolower($Suffix), 'ct')) {
+            return ['Currency' => 'EUR', 'Sub' => true, 'Suffix' => $Suffix];
+        }
+        return ['Currency' => null, 'Sub' => null, 'Suffix' => $Suffix];
+    }
+
+    /**
+     * Faktor zur Hauptwährung für eine Preisvariable: 0,01 bei Preis in Cent oder Ähnlichem, sonst 1.
+     * Der Modus gilt wie in den Verbrauchsquellen: 0 automatisch (aus dem Suffix), 1 Hauptwährung, 2 Unterwährung.
+     */
+    private function priceFactor(int $PriceID, int $Mode = 0): float
+    {
+        if ($Mode === 1) {
+            return 1.0;
+        }
+        if ($Mode === 2) {
+            return 0.01;
+        }
+        return $this->detectPriceUnit($PriceID)['Sub'] === true ? 0.01 : 1.0;
+    }
+
+    /**
+     * Anzeigetext der Währung für Suffix und Kacheln: das Symbol der Auswahl, sonst der Code selbst (auch eigenes Symbol).
+     */
+    private function currencySymbol(string $Code): string
+    {
+        return self::CURRENCIES[$Code] ?? $Code;
     }
 
     /**
@@ -195,11 +246,11 @@ trait ArchiveConsumption
     }
 
     /**
-     * Kosten mit variablem Preis: Verbrauch der Quelle je Stunde mal Preis der Stunde, aufsummiert. Preise mit "ct" in der
-     * Einheit werden durch 100 geteilt. Fehlt für eine Stunde ein Preis, gilt der zuletzt bekannte, vor dem ersten Eintrag der erste.
+     * Kosten mit variablem Preis: Verbrauch der Quelle je Stunde mal Preis der Stunde, aufsummiert. Preise in Cent oder
+     * einer anderen Unterwährung werden durch 100 geteilt (Modus siehe priceFactor). Fehlt für eine Stunde ein Preis, gilt der zuletzt bekannte, vor dem ersten Eintrag der erste.
      * Null, wenn es nicht geht (Preisvariable oder Quelle nicht archiviert, Zähler ohne Zähler-Aggregation).
      */
-    private function hourlyPriceCost(int $ArchiveID, int $PriceID, int $SourceID, array $SourceInfo, int $Start, int $End): ?float
+    private function hourlyPriceCost(int $ArchiveID, int $PriceID, int $SourceID, array $SourceInfo, int $Start, int $End, int $PriceFactorMode = 0): ?float
     {
         if ($PriceID <= 0 || $SourceID <= 0 || !AC_GetLoggingStatus($ArchiveID, $PriceID) || !AC_GetLoggingStatus($ArchiveID, $SourceID)) {
             return null;
@@ -209,7 +260,7 @@ trait ArchiveConsumption
             return null;
         }
 
-        $Factor = $this->priceFactor($PriceID);
+        $Factor = $this->priceFactor($PriceID, $PriceFactorMode);
         $Prices = [];
         foreach (AC_GetAggregatedValues($ArchiveID, $PriceID, 0, $Start, $End, 0) as $Record) {
             $Prices[(int) $Record['TimeStamp']] = (float) $Record['Avg'] * $Factor;

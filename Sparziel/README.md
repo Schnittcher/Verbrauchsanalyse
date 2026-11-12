@@ -46,7 +46,7 @@ Auf Kurs | `OnTrack` | Ja/Nein | true, wenn das Ziel bei der bisherigen Entwickl
 Hochrechnung für den ganzen Zeitraum | `Projected` | Kommazahl | Voraussichtlicher Verbrauch bis zum Ende des Zeitraums.
 Zielwert für den ganzen Zeitraum | `TargetValue` | Kommazahl | Verbrauch, bei dem das Ziel genau erreicht wäre.
 Voraussichtliche Einsparung | `Savings` | Kommazahl | Vorjahr minus Hochrechnung.
-Voraussichtliche Einsparung in Geld | `SavingsCost` | Kommazahl (€) | Dasselbe in Euro.
+Voraussichtliche Einsparung in Geld | `SavingsCost` | Kommazahl (Währung) | Dasselbe in der Währung der Verbrauchsquellen.
 Ergebnis | `Message` | Text | Kurzer Satz zum Stand.
 
 Alle Variablen sind schreibgeschützt und werden vom Modul berechnet. Zusätzlich gibt es die versteckte Textvariable `Data` mit den Daten der Kachel.

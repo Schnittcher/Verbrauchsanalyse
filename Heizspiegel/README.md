@@ -25,6 +25,8 @@ Die Instanz ist ein Kind der Instanz [Verbrauchsquellen](../Verbrauchsquellen/RE
 * **Wohnfläche**: die beheizte Wohnfläche des **gesamten Gebäudes**, nicht nur der Wohnung. Der Heizspiegel vergleicht Gebäude.
 * Optional ein **Preis** je Einheit der Heizungsvariable für die Kosten.
 
+**Währung:** Der Heizspiegel ist eine deutsche Veröffentlichung, seine Kostenbereiche und der Zuschlag fürs Warmwasser sind Euro je m² und Jahr. Ist in den [Verbrauchsquellen](../Verbrauchsquellen/README.md) eine andere Währung gewählt, entfallen deshalb die Karte und die Variable "Heizkosten je m² und Jahr" mit der Kostenkategorie. Die Einordnung nach kWh je m² und das Einsparpotenzial in Geld (Verbrauch mal dein Preis) bleiben. Die kWh-Grenzen stammen aus deutschen Erhebungen, außerhalb Deutschlands sind sie nur ein grober Vergleich.
+
 Der Heizspiegel gilt für Heizung und Warmwasser zusammen. Wie das Warmwasser erwärmt wird, entscheidet, ob ein Zuschlag nötig ist, das steht in der Konfiguration unter der Tabelle.
 
 ## 2. Konfiguration
@@ -79,9 +81,9 @@ Variable | Ident | Typ | Beschreibung
 ------------ | ------------ | ------------ | ----------------
 Kategorie | `Category` | Text | niedrig, mittel, erhöht oder zu hoch, in der Sprache des Systems.
 Heizenergie je m² und Jahr | `KWhPerM2` | Kommazahl (kWh/m²) | Mit dem Zuschlag für Warmwasser.
-Heizkosten je m² und Jahr | `CostPerM2` | Kommazahl (€/m²) | 0 ohne Preis.
+Heizkosten je m² und Jahr | `CostPerM2` | Kommazahl (Währung/m²) | 0 ohne Preis und bei einer anderen Währung als Euro.
 Einsparpotenzial bis zur nächstbesseren Kategorie | `SavingKWh` | Kommazahl (kWh) | 0 in der besten Kategorie.
-Einsparpotenzial in Geld | `SavingCost` | Kommazahl (€) | 0 ohne Preis.
+Einsparpotenzial in Geld | `SavingCost` | Kommazahl (Währung) | 0 ohne Preis.
 
 ## 5. Funktionen
 

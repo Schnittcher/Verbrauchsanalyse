@@ -138,6 +138,113 @@ class VerbrauchsquellenTest extends TestCase
         $this->assertSame($heat, $this->config($id, 4)['MainMeter']);
     }
 
+    public function testCurrencyIsEuroByDefault(): void
+    {
+        $id = $this->createInstance(['Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+        $this->assertSame('€', $this->config($id, 1)['Currency']);
+        $this->assertSame('EUR', $this->config($id, 1)['CurrencyCode']);
+        $this->assertSame('€', $this->config($id, 4)['Currency']);
+    }
+
+    public function testCurrencyFollowsTheSelection(): void
+    {
+        $main = $this->variable();
+        $swiss = $this->createInstance(['Currency' => 'CHF', 'Consumers' => $this->consumers([[$main, 'MainMeter']])]);
+        $pound = $this->createInstance(['Currency' => 'GBP', 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+        $custom = $this->createInstance(['Currency' => 'CUSTOM', 'CurrencyCustom' => 'Fr', 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+        $this->assertSame('CHF', $this->config($swiss, 1)['Currency']);
+        $this->assertSame('£', $this->config($pound, 1)['Currency']);
+        $this->assertSame('Fr', $this->config($custom, 1)['Currency']);
+    }
+
+    public function testCustomCurrencyWithoutSymbolIsInvalid(): void
+    {
+        $id = $this->createInstance(['Currency' => 'CUSTOM', 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+        $this->assertSame(201, IPS_GetInstance($id)['InstanceStatus']);
+    }
+
+    public function testCurrencyIsTakenFromPriceVariableOnlyWithTheCheckbox(): void
+    {
+        $price = $this->priceVariable(' CHF/kWh', 0.25);
+        $main = $this->variable();
+        $off = $this->createInstance(['Currency' => 'EUR', 'PriceVariableID' => $price, 'Consumers' => $this->consumers([[$main, 'MainMeter']])]);
+        $on = $this->createInstance(['Currency' => 'EUR', 'CurrencyFromPrice' => true, 'PriceVariableID' => $price, 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+        $this->assertSame('€', $this->config($off, 1)['Currency']);
+        $this->assertSame('CHF', $this->config($on, 1)['Currency']);
+    }
+
+    public function testUnclearSuffixFallsBackToTheSelection(): void
+    {
+        // "$" und "kr" gehören zu mehreren Ländern, dann gilt die Auswahl und es gibt keinen Fehler
+        $id = $this->createInstance(['Currency' => 'GBP', 'CurrencyFromPrice' => true, 'PriceVariableID' => $this->priceVariable(' $/kWh', 0.3), 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+        $this->assertSame(102, IPS_GetInstance($id)['InstanceStatus']);
+        $this->assertSame('£', $this->config($id, 1)['Currency']);
+    }
+
+    public function testDifferentCurrenciesInPriceVariablesAreInvalid(): void
+    {
+        $id = $this->createInstance([
+            'PriceVariableID'  => $this->priceVariable(' €/kWh', 0.3),
+            'Consumers'        => $this->consumers([[$this->variable(), 'MainMeter']]),
+            'PriceVariableID2' => $this->priceVariable(' CHF/m³', 4.0),
+            'Consumers2'       => $this->consumers([[$this->variable(), 'MainMeter']])
+        ]);
+
+        $this->assertSame(201, IPS_GetInstance($id)['InstanceStatus']);
+    }
+
+    public function testSameCurrencyWithDifferentFactorsIsValid(): void
+    {
+        // Strom in ct/kWh, Gas in €/kWh: derselbe Euro, nur verschiedene Faktoren
+        $id = $this->createInstance([
+            'PriceVariableID'  => $this->priceVariable(' ct/kWh', 28.5),
+            'Consumers'        => $this->consumers([[$this->variable(), 'MainMeter']]),
+            'Unit3'            => 'kWh',
+            'PriceVariableID3' => $this->priceVariable(' €/kWh', 0.12),
+            'Consumers3'       => $this->consumers([[$this->variable(), 'MainMeter']])
+        ]);
+
+        $this->assertSame(102, IPS_GetInstance($id)['InstanceStatus']);
+        $this->assertEqualsWithDelta(0.285, $this->config($id, 1)['PriceNow'], 0.0001);
+        $this->assertEqualsWithDelta(0.12, $this->config($id, 3)['PriceNow'], 0.0001);
+    }
+
+    public function testPriceFactorModeOverridesTheDetection(): void
+    {
+        $unclear = $this->priceVariable('', 28.5);
+        $auto = $this->createInstance(['PriceVariableID' => $unclear, 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+        $main = $this->createInstance(['PriceFactorMode' => 1, 'PriceVariableID' => $unclear, 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+        $sub = $this->createInstance(['PriceFactorMode' => 2, 'PriceVariableID' => $unclear, 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+        $this->assertEqualsWithDelta(28.5, $this->config($auto, 1)['PriceNow'], 0.0001);
+        $this->assertEqualsWithDelta(28.5, $this->config($main, 1)['PriceNow'], 0.0001);
+        $this->assertEqualsWithDelta(0.285, $this->config($sub, 1)['PriceNow'], 0.0001);
+        $this->assertSame(2, $this->config($sub, 1)['PriceFactorMode']);
+    }
+
+    public function testSubunitsOfOtherCurrenciesAreDetected(): void
+    {
+        foreach ([' p/kWh' => 'GBP', ' Rp./kWh' => 'CHF', ' ct/kWh' => 'EUR'] as $suffix => $code) {
+            $id = $this->createInstance(['Currency' => 'USD', 'CurrencyFromPrice' => true, 'PriceVariableID' => $this->priceVariable($suffix, 20.0), 'Consumers' => $this->consumers([[$this->variable(), 'MainMeter']])]);
+
+            $this->assertSame($code, $this->config($id, 1)['CurrencyCode'], $suffix);
+            $this->assertEqualsWithDelta(0.2, $this->config($id, 1)['PriceNow'], 0.0001, $suffix);
+        }
+    }
+
+    private function priceVariable(string $suffix, float $value): int
+    {
+        $id = IPS_CreateVariable(VARIABLETYPE_FLOAT);
+        IPS_SetVariableCustomPresentation($id, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'SUFFIX' => $suffix]);
+        SetValue($id, $value);
+        return $id;
+    }
+
     private function createInstance(array $configuration): int
     {
         $id = IPS_CreateInstance(self::MODULE_ID);

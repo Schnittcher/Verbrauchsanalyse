@@ -67,7 +67,7 @@ Ausgabe: Der Bericht steht als Text in den Variablen der Instanz (der zuletzt er
 
 Beim Übernehmen der Einstellungen füllt sich nur der Text des gewählten Berichts, Medienobjekt und Mail entstehen erst zur Berichtszeit oder auf Knopfdruck. Ein Termin, der bei einer Änderung der Einstellungen schon verstrichen ist, wird nicht nachgeholt. Die Instanz läuft mit einem gemeinsamen Zeitgeber für alle Berichte, der höchstens sechs Stunden am Stück wartet.
 
-CSV-Spalten: Zeitraum, Ebene (0 = oberste Ebene, 1 = Mitglied einer Gruppe), Name, Verbrauch, Einheit, Anteil in %, Kosten in EUR, Vorperiode, Veränderung in %, CO2 in kg. Die Kosten je Zeile sind der Verbrauch mal der Durchschnittspreis der Periode. Die Datei ist UTF-8 mit Bytemarke, Trennzeichen Semikolon. Ohne Zeilen (zum Beispiel bei der Heizung) steht eine Zeile mit der Summe des Berichts darin. Das PDF nennt oben rechts den Namen des Berichts.
+CSV-Spalten: Zeitraum, Ebene (0 = oberste Ebene, 1 = Mitglied einer Gruppe), Name, Verbrauch, Einheit, Anteil in %, Kosten (in der Währung der Verbrauchsquellen, die Überschrift nennt sie), Vorperiode, Veränderung in %, CO2 in kg. Die Kosten je Zeile sind der Verbrauch mal der Durchschnittspreis der Periode. Die Datei ist UTF-8 mit Bytemarke, Trennzeichen Semikolon. Ohne Zeilen (zum Beispiel bei der Heizung) steht eine Zeile mit der Summe des Berichts darin. Das PDF nennt oben rechts den Namen des Berichts.
 
 ## 2. Kachel
 
@@ -89,7 +89,7 @@ Variable | Ident | Typ | Beschreibung
 Bericht | `ReportText` | Text | Der Bericht als Text.
 Zeitraum des Berichts | `ReportPeriod` | Text | Zum Beispiel 20.10.2026, Woche 42/2026, 09/2026 oder 2025.
 Gesamtverbrauch | `Total` | Kommazahl | Verbrauch der Periode.
-Kosten | `Cost` | Kommazahl (€) | Kosten der Periode.
+Kosten | `Cost` | Kommazahl (Währung) | Kosten der Periode.
 Veränderung zur Vorperiode | `ChangePrevious` | Kommazahl (%) | Gegenüber der Periode davor.
 Veränderung zur selben Periode im Vorjahr | `ChangeLastYear` | Kommazahl (%) | Nur mit eingeschaltetem Vorjahresvergleich.
 Veränderung zum Durchschnitt | `ChangeAverage` | Kommazahl (%) | Gegenüber dem Durchschnitt der Zeit davor.

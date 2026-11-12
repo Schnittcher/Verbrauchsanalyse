@@ -405,7 +405,7 @@
             stats.appendChild(card(texts.run, state.run + ' h'));
             stats.appendChild(card(texts.minFlow, fmt(state.minFlow, 1) + ' l/h'));
             stats.appendChild(card(texts.lossYear, fmt(state.lossYear, 1) + ' m³'));
-            stats.appendChild(card(texts.lossCost, fmt(state.lossCost, 2) + ' €'));
+            stats.appendChild(card(texts.lossCost, fmt(state.lossCost, 2) + ' ' + (state.currency || '€')));
             root.appendChild(stats);
             fit();
         }

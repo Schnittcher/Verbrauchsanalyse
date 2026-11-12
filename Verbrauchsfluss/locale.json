@@ -45,7 +45,7 @@
             "Gas": "Gas",
             "The selected medium is not set up in the Consumption sources": "Das gewählte Medium ist in den Verbrauchsquellen nicht eingerichtet",
             "Override values of the Consumption sources": "Werte der Verbrauchsquellen überschreiben",
-            "Price per unit in EUR": "Preis je Einheit in EUR",
+            "Price per unit": "Preis je Einheit",
             "Price variable (optional)": "Preisvariable (optional)"
         }
     }

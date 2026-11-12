@@ -187,9 +187,10 @@ class Austauschrechner extends IPSModuleStrict
         } elseif ($Payback <= $Life) {
             $State = 'worth';
             $Verdict = sprintf(
-                $this->Translate('Worth it: pays off after %s years, %s EUR gain over %d years'),
+                $this->Translate('Worth it: pays off after %s years, %s %s gain over %d years'),
                 number_format($Payback, 1, '.', ''),
                 number_format($Net, 0, '.', ''),
+                $Sources['Currency'] ?? '€',
                 $Life
             );
         } else {
@@ -230,6 +231,7 @@ class Austauschrechner extends IPSModuleStrict
     {
         $Data = [
             'valid'       => $Result !== null,
+            'currency'    => $this->sourceCurrency(),
             'result'      => $Result,
             'fromArchive' => $this->deviceID() > 0,
             'inputs'      => [
@@ -342,13 +344,14 @@ class Austauschrechner extends IPSModuleStrict
     private function maintainVariables(): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $Energy = $Value + ['SUFFIX' => ' kWh', 'DIGITS' => 0];
         $this->MaintainVariable('OldKWhYear', $this->Translate('Old device per year'), VARIABLETYPE_FLOAT, $Energy, 1, true);
         $this->MaintainVariable('NewKWhYear', $this->Translate('New device per year'), VARIABLETYPE_FLOAT, $Energy, 2, true);
         $this->MaintainVariable('SavingKWhYear', $this->Translate('Saving per year'), VARIABLETYPE_FLOAT, $Energy, 3, true);
-        $this->MaintainVariable('SavingCostYear', $this->Translate('Saving per year in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 2], 4, true);
+        $this->MaintainVariable('SavingCostYear', $this->Translate('Saving per year in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 2], 4, true);
         $this->MaintainVariable('PaybackYears', $this->Translate('Payback period'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $this->Translate('years'), 'DIGITS' => 1], 5, true);
-        $this->MaintainVariable('NetLifetime', $this->Translate('Gain over the lifetime'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 0], 6, true);
+        $this->MaintainVariable('NetLifetime', $this->Translate('Gain over the lifetime'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 0], 6, true);
         $this->MaintainVariable('Verdict', $this->Translate('Result'), VARIABLETYPE_STRING, $Value, 7, true);
         $this->MaintainVariable('Data', $this->Translate('Evaluation data'), VARIABLETYPE_STRING, $Value, 8, true);
         $this->hideVariable('Data');

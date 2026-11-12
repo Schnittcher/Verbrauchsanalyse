@@ -60,7 +60,7 @@ Klasse | `Class` | Text | A bis G.
 Verbrauch pro Jahr | `YearKWh` | Kommazahl (kWh) | Der verglichene Jahresverbrauch.
 Verbrauch je Person | `PerPerson` | Kommazahl (kWh) | Jahresverbrauch geteilt durch die Bewohner.
 Einsparpotenzial bis Klasse A | `SavingToA` | Kommazahl (kWh) | 0 in Klasse A.
-Einsparpotenzial bis Klasse A in Geld | `SavingToACost` | Kommazahl (€) | Mit dem aktuellen Preis.
+Einsparpotenzial bis Klasse A in Geld | `SavingToACost` | Kommazahl (Währung) | Mit dem aktuellen Preis, in der Währung der Verbrauchsquellen. Die Klassen selbst sind kWh-Werte des deutschen Stromspiegels und gelten unabhängig von der Währung.
 
 ## 5. Funktionen
 

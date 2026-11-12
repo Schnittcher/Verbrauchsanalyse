@@ -574,7 +574,7 @@
             cards.appendChild(total);
             var cost = el('div', 'tvb-card tvb-cost');
             cost.appendChild(el('div', 'tvb-label', texts.cost));
-            cost.appendChild(el('div', 'tvb-big', fmt(data.cost, 2) + ' €'));
+            cost.appendChild(el('div', 'tvb-big', fmt(data.cost, 2) + ' ' + (state.currency || '€')));
             cost.appendChild(delta(data.cost, data.prevCost, texts));
             cards.appendChild(cost);
             root.appendChild(cards);

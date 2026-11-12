@@ -15,7 +15,6 @@
             "W": "W",
             "h": "h",
             "kWh": "kWh",
-            "EUR": "EUR",
             "%": "%",
             "years": "Jahre",
             "Instance is active": "Instanz ist aktiv",
@@ -24,7 +23,7 @@
             "The consumption of the old device cannot be determined": "Der Verbrauch des alten Geräts lässt sich nicht ermitteln",
             "No active Consumption sources instance is connected": "Es ist keine aktive Instanz Verbrauchsquellen verbunden",
             "Not worth it: the new device saves no energy": "Lohnt sich nicht: Das neue Gerät spart keine Energie",
-            "Worth it: pays off after %s years, %s EUR gain over %d years": "Lohnt sich: Amortisation nach %s Jahren, %s EUR Gewinn über %d Jahre",
+            "Worth it: pays off after %s years, %s %s gain over %d years": "Lohnt sich: Amortisation nach %s Jahren, %s %s Gewinn über %d Jahre",
             "Not worth it: pays off only after %s years, the lifetime is %d years": "Lohnt sich nicht: Amortisation erst nach %s Jahren, die Lebensdauer beträgt %d Jahre",
             "Old device per year": "Altes Gerät pro Jahr",
             "New device per year": "Neues Gerät pro Jahr",
@@ -50,7 +49,7 @@
             "Water": "Wasser",
             "Gas": "Gas",
             "Override values of the Consumption sources": "Werte der Verbrauchsquellen überschreiben",
-            "Price per unit in EUR": "Preis je Einheit in EUR",
+            "Price per unit": "Preis je Einheit",
             "Price variable (optional)": "Preisvariable (optional)"
         }
     }

@@ -216,6 +216,7 @@ class Sparziel extends IPSModuleStrict
             'targetValue'  => round($TargetValue, 1),
             'savings'      => round($Savings, 1),
             'savingsCost'  => round($Savings * $Price, 2),
+            'currency'     => $Sources['Currency'] ?? '€',
             'sourceId'     => $SourceID,
             'clickOpen'    => $this->ReadPropertyBoolean('OpenChartOnClick')
         ]);
@@ -259,6 +260,7 @@ class Sparziel extends IPSModuleStrict
     private function maintainVariables(string $Unit): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $Amount = $Value + ['SUFFIX' => ' ' . $Unit, 'DIGITS' => 1];
         $OnTrack = $Value + [
             'OPTIONS' => json_encode([
@@ -274,7 +276,7 @@ class Sparziel extends IPSModuleStrict
         $this->MaintainVariable('Projected', $this->Translate('Projection for the whole period'), VARIABLETYPE_FLOAT, $Amount, 6, true);
         $this->MaintainVariable('TargetValue', $this->Translate('Target for the whole period'), VARIABLETYPE_FLOAT, $Amount, 7, true);
         $this->MaintainVariable('Savings', $this->Translate('Projected saving'), VARIABLETYPE_FLOAT, $Amount, 8, true);
-        $this->MaintainVariable('SavingsCost', $this->Translate('Projected saving in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 2], 9, true);
+        $this->MaintainVariable('SavingsCost', $this->Translate('Projected saving in money'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 2], 9, true);
         $this->MaintainVariable('Message', $this->Translate('Result'), VARIABLETYPE_STRING, $Value, 10, true);
         $this->MaintainVariable('Data', $this->Translate('Evaluation data'), VARIABLETYPE_STRING, $Value, 11, true);
         $this->hideVariable('Data');

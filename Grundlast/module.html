@@ -636,7 +636,7 @@
 
             var stats = el('div', 'grl-stats');
             stats.appendChild(card(texts.yearKWh, fmt(state.yearKWh, 0)));
-            stats.appendChild(card(texts.yearCost, fmt(state.yearCost, 2) + ' €'));
+            stats.appendChild(card(texts.yearCost, fmt(state.yearCost, 2) + ' ' + (state.currency || '€')));
             var share = el('div', 'grl-card grl-share');
             var ring = el('div', 'grl-ring');
             ring.style.setProperty('--p', Math.min(100, state.share));

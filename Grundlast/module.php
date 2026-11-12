@@ -187,6 +187,7 @@ class Grundlast extends IPSModuleStrict
             'lastNight' => round($Result['Last'], 1),
             'yearKWh'   => round($YearKWh, 0),
             'yearCost'  => round($YearKWh * $Price, 2),
+            'currency'  => $Sources['Currency'] ?? '€',
             'share'     => $this->GetValue('Share'),
             'nights'    => $Nights,
             'ranking'   => $Entries,
@@ -360,10 +361,11 @@ class Grundlast extends IPSModuleStrict
     private function maintainVariables(): void
     {
         $Value = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+        $Currency = $this->sourceCurrency();
         $this->MaintainVariable('BaseLoad', $this->Translate('Base load'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' W', 'DIGITS' => 1], 1, true);
         $this->MaintainVariable('LastNight', $this->Translate('Last night'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' W', 'DIGITS' => 1], 2, true);
         $this->MaintainVariable('YearKWh', $this->Translate('Base load per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' kWh', 'DIGITS' => 0], 3, true);
-        $this->MaintainVariable('YearCost', $this->Translate('Base load cost per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' €', 'DIGITS' => 2], 4, true);
+        $this->MaintainVariable('YearCost', $this->Translate('Base load cost per year'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' ' . $Currency, 'DIGITS' => 2], 4, true);
         $this->MaintainVariable('Share', $this->Translate('Share of consumption'), VARIABLETYPE_FLOAT, $Value + ['SUFFIX' => ' %', 'DIGITS' => 1], 5, true);
         $this->MaintainVariable('Standby', $this->Translate('Standby ranking'), VARIABLETYPE_STRING, $Value, 6, true);
         $this->MaintainVariable('Data', $this->Translate('Evaluation data'), VARIABLETYPE_STRING, $Value, 7, true);

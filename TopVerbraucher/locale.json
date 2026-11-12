@@ -43,7 +43,7 @@
             "Water": "Wasser",
             "Gas": "Gas",
             "Override values of the Consumption sources": "Werte der Verbrauchsquellen überschreiben",
-            "Price per unit in EUR": "Preis je Einheit in EUR",
+            "Price per unit": "Preis je Einheit",
             "Price variable (optional)": "Preisvariable (optional)",
             "Residents (0 = off)": "Bewohner (0 = aus)",
             "Living area (0 = off)": "Wohnfläche (0 = aus)"
